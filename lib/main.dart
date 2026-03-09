@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart'; // سنقوم بإنشائها في الخطوة التالية
 
 void main() {
   runApp(const EduVerseApp());
@@ -30,7 +29,6 @@ class EduVerseApp extends StatelessWidget {
         fontFamily: 'Roboto', // يفضل استخدام خط مثل "Cairo" للعربي
         useMaterial3: true,
       ),
-      home: const LoginScreen(),
     );
   }
 }
