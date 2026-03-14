@@ -1,0 +1,1 @@
+// Base State class placeholder

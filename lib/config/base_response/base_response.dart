@@ -1,0 +1,1 @@
+// Base Response class placeholder
