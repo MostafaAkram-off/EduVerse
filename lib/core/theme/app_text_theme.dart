@@ -65,6 +65,22 @@ class AppTextTheme {
     height: 1.5,
   );
 
+  static const TextStyle bodySemibold = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+    height: 1.5,
+  );
+
+  static const TextStyle bodyBold = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+    height: 1.5,
+  );
+
   static const TextStyle bodySmall = TextStyle(
     fontFamily: fontFamily,
     fontSize: 13,

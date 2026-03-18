@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'core/theme/app_theme.dart';
+import 'package:edu_verse/student/features/home/ui/screens/student_main_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Lock portrait orientation
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   runApp(const EduVerseApp());
 }
 
@@ -12,23 +23,10 @@ class EduVerseApp extends StatelessWidget {
     return MaterialApp(
       title: 'EduVerse',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        // الألوان الأساسية حسب الهوية البصرية المقترحة
-        primaryColor: const Color(0xFF3F51B5), // Indigo Blue
-        scaffoldBackgroundColor: const Color(0xFFF5F5F7), // Grey White background
-        colorScheme: ColorScheme.fromSwatch().copyWith(
-          primary: const Color(0xFF3F51B5),
-          secondary: const Color(0xFFFF6F61), // Coral Orange for Actions
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 0,
-          centerTitle: true,
-        ),
-        fontFamily: 'Roboto', // يفضل استخدام خط مثل "Cairo" للعربي
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.light, // change to ThemeMode.system when ready
+      home: const StudentMainScreen(),
     );
   }
 }
