@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/student/features/enrollment/ui/screens/enroll_confirm_screen.dart';
 import '../../data/models/course_model.dart';
 
 class CourseDetailScreen extends StatefulWidget {
@@ -32,7 +33,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: Column(
         children: [
           // ── Hero ────────────────────────────
@@ -40,7 +40,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
 
           // ── Metrics bar ─────────────────────
           Container(
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Column(
               children: [
@@ -295,9 +295,11 @@ class _CurriculumTab extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.borderLight),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
           ),
           child: Row(
             children: [
@@ -453,8 +455,12 @@ class _BottomAction extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.borderLight)),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
       ),
       child: Row(
         children: [
@@ -462,23 +468,77 @@ class _BottomAction extends StatelessWidget {
               style: AppTextTheme.price),
           const SizedBox(width: 16),
           Expanded(
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: course.isEnrolled
-                    ? AppColors.success
-                    : AppColors.primary,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+            child: course.isEnrolled
+                ? ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      'Continue Learning',
+                      style: AppTextTheme.buttonMedium,
+                    ),
+                  )
+                : _GradientEnrollButton(
+                    onPressed: () {
+                      Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (_) => EnrollConfirmScreen(course: course),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GradientEnrollButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  const _GradientEnrollButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.gradient1Start,
+                AppColors.gradient1End,
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.35),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
               ),
+            ],
+          ),
+          child: SizedBox(
+            height: 50,
+            child: Center(
               child: Text(
-                course.isEnrolled ? 'Continue Learning' : 'Enroll Now',
+                'Enroll Now',
                 style: AppTextTheme.buttonMedium,
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import '../../../courses/data/models/course_model.dart';
 
 class SessionModel {

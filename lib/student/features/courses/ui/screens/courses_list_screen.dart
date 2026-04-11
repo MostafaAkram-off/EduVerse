@@ -27,7 +27,6 @@ class _CoursesBody extends StatelessWidget {
     return BlocBuilder<CoursesCubit, CoursesState>(
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.background,
           body: switch (state) {
             CoursesLoading() => const _CoursesShimmer(),
             CoursesLoaded()  => _CoursesContent(state: state),
@@ -74,7 +73,7 @@ class _CoursesContentState extends State<_CoursesContent> {
         children: [
           // ── Header ────────────────────────
           Container(
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

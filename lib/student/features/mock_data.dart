@@ -306,4 +306,166 @@ class MockData {
     'Marketing',
     'Business',
   ];
+
+  // ─────────────────────────────────────────
+  // CERTIFICATES
+  // ─────────────────────────────────────────
+  static final List<CertificateItem> certificates = [
+    CertificateItem(
+      id: 'CERT-2026-001',
+      title: 'UI/UX Design Fundamentals',
+      date: 'Feb 2026',
+      instructor: 'Sarah Ahmed',
+      color: const Color(0xFF7C3AED),
+      isLocked: false,
+    ),
+    CertificateItem(
+      id: 'CERT-2026-002',
+      title: 'Figma Advanced',
+      date: 'Jan 2026',
+      instructor: 'Sarah Ahmed',
+      color: const Color(0xFF4A6CF7),
+      isLocked: false,
+    ),
+    CertificateItem(
+      id: 'CERT-PENDING-FLUTTER',
+      title: 'Flutter Development',
+      date: '',
+      instructor: 'Omar Hassan',
+      color: const Color(0xFF0EA5E9),
+      isLocked: true,
+      progressPercentIfLocked: 35,
+    ),
+  ];
+
+  // ─────────────────────────────────────────
+  // NOTIFICATIONS
+  // ─────────────────────────────────────────
+  static final List<NotificationItem> notifications = [
+    NotificationItem(
+      id: 1,
+      type: 'session',
+      title: 'New Session Scheduled',
+      message: 'UI/UX Design Masterclass – Mar 10, 10 AM',
+      timeLabel: '2 min ago',
+      isRead: false,
+    ),
+    NotificationItem(
+      id: 2,
+      type: 'grade',
+      title: 'Assignment Graded',
+      message: 'Your Flutter Todo App received 88/100',
+      timeLabel: '1 hr ago',
+      isRead: false,
+    ),
+    NotificationItem(
+      id: 3,
+      type: 'cert',
+      title: 'Certificate Ready',
+      message: 'UI/UX Design Fundamentals certificate is available',
+      timeLabel: 'Yesterday',
+      isRead: true,
+    ),
+    NotificationItem(
+      id: 4,
+      type: 'payment',
+      title: 'Payment Confirmed',
+      message: 'Payment of \$150 for Flutter Dev confirmed',
+      timeLabel: '2 days ago',
+      isRead: true,
+    ),
+  ];
+
+  // ─────────────────────────────────────────
+  // PAYMENTS (student ledger)
+  // ─────────────────────────────────────────
+  static final List<PaymentLedgerItem> paymentLedger = [
+    PaymentLedgerItem(
+      id: '1',
+      courseTitle: 'UI/UX Design Masterclass',
+      amount: 108,
+      dateLabel: 'Mar 9, 2026',
+      methodLabel: 'Credit Card **** 4242',
+      status: PaymentStatus.paid,
+      receiptId: '#EDU-2026-4821',
+    ),
+    PaymentLedgerItem(
+      id: '2',
+      courseTitle: 'Flutter Development',
+      amount: 135,
+      dateLabel: 'Feb 15, 2026',
+      methodLabel: 'Bank Transfer',
+      status: PaymentStatus.paid,
+      receiptId: '#EDU-2026-3910',
+    ),
+    PaymentLedgerItem(
+      id: '3',
+      courseTitle: 'Data Science with Python',
+      amount: 60,
+      dateLabel: 'Apr 1, 2026',
+      methodLabel: 'Installment 2/3',
+      status: PaymentStatus.pending,
+      receiptId: null,
+    ),
+  ];
+}
+
+class CertificateItem {
+  final String id;
+  final String title;
+  final String date;
+  final String instructor;
+  final Color color;
+  final bool isLocked;
+  final int? progressPercentIfLocked;
+
+  const CertificateItem({
+    required this.id,
+    required this.title,
+    required this.date,
+    required this.instructor,
+    required this.color,
+    this.isLocked = false,
+    this.progressPercentIfLocked,
+  });
+}
+
+class NotificationItem {
+  final int id;
+  final String type;
+  final String title;
+  final String message;
+  final String timeLabel;
+  final bool isRead;
+
+  const NotificationItem({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.message,
+    required this.timeLabel,
+    required this.isRead,
+  });
+}
+
+enum PaymentStatus { paid, pending, upcoming }
+
+class PaymentLedgerItem {
+  final String id;
+  final String courseTitle;
+  final double amount;
+  final String dateLabel;
+  final String methodLabel;
+  final PaymentStatus status;
+  final String? receiptId;
+
+  const PaymentLedgerItem({
+    required this.id,
+    required this.courseTitle,
+    required this.amount,
+    required this.dateLabel,
+    required this.methodLabel,
+    required this.status,
+    this.receiptId,
+  });
 }

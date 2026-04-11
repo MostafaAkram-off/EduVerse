@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/student/features/assignments/ui/screens/upload_assignment_screen.dart';
+import 'package:edu_verse/student/features/attendance/ui/screens/qr_scanner_screen.dart';
 import '../../data/models/enrolled_course_model.dart';
 import '../cubit/learning_cubit.dart';
 
@@ -25,7 +27,6 @@ class _LearningBody extends StatelessWidget {
     return BlocBuilder<LearningCubit, LearningState>(
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.background,
           body: switch (state) {
             LearningLoading() => const _LearningShimmer(),
             LearningLoaded()  => _LearningContent(state: state),
@@ -59,7 +60,7 @@ class _LearningContent extends StatelessWidget {
         children: [
           // ── Header ──────────────────────────
           Container(
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,7 +344,6 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
   Widget build(BuildContext context) {
     final course = widget.enrolled.course;
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: Column(
         children: [
           // ── Classroom header ─────────────────
@@ -452,76 +452,114 @@ class _SessionsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return ListView(
       padding: const EdgeInsets.all(16),
-      itemCount: enrolled.sessions.length,
-      itemBuilder: (context, index) {
-        final session = enrolled.sessions[index];
-        final isLive = session.status == 'live';
-        final isDone = session.status == 'completed';
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.borderLight),
-          ),
-          child: Row(
-            children: [
-              // Status icon
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: isDone
-                      ? AppColors.successLight
-                      : isLive
-                      ? AppColors.errorLight
-                      : AppColors.primaryLight,
+      children: [
+        Row(
+          children: [
+            Text(
+              'All Sessions (${enrolled.sessions.length})',
+              style: AppTextTheme.bodySemibold,
+            ),
+            const Spacer(),
+            FilledButton.tonal(
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  isDone
-                      ? Icons.check_circle_rounded
-                      : isLive
-                      ? Icons.play_circle_fill_rounded
-                      : Icons.play_circle_outline_rounded,
-                  size: 22,
-                  color: isDone
-                      ? AppColors.success
-                      : isLive
-                      ? AppColors.error
-                      : AppColors.primary,
-                ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(session.title,
-                        style: AppTextTheme.bodySemibold),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        const Icon(Icons.access_time,
-                            size: 12,
-                            color: AppColors.textTertiary),
-                        const SizedBox(width: 3),
-                        Text('${session.date} · ${session.time}',
-                            style: AppTextTheme.timestamp),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    _StatusBadge(status: session.status),
-                  ],
-                ),
+              onPressed: () async {
+                final code = await Navigator.of(context).push<String>(
+                  MaterialPageRoute<String>(
+                    builder: (_) => const QrScannerScreen(),
+                  ),
+                );
+                if (!context.mounted) return;
+                if (code != null && code.isNotEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Attendance code captured')),
+                  );
+                }
+              },
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.qr_code_scanner_rounded, size: 18),
+                  SizedBox(width: 6),
+                  Text('QR Scan'),
+                ],
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...enrolled.sessions.map((session) {
+          final isLive = session.status == 'live';
+          final isDone = session.status == 'completed';
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.borderLight),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: isDone
+                        ? AppColors.successLight
+                        : isLive
+                            ? AppColors.errorLight
+                            : AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isDone
+                        ? Icons.check_circle_rounded
+                        : isLive
+                            ? Icons.play_circle_fill_rounded
+                            : Icons.play_circle_outline_rounded,
+                    size: 22,
+                    color: isDone
+                        ? AppColors.success
+                        : isLive
+                            ? AppColors.error
+                            : AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(session.title, style: AppTextTheme.bodySemibold),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time,
+                              size: 12, color: AppColors.textTertiary),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${session.date} · ${session.time}',
+                            style: AppTextTheme.timestamp,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      _StatusBadge(status: session.status),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 }
@@ -541,48 +579,69 @@ class _AssignmentsTab extends StatelessWidget {
       itemBuilder: (context, index) {
         final a = enrolled.assignments[index];
         final isGraded = a.status == 'graded';
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
+        final canOpenUpload =
+            a.status == 'pending' || a.status == 'submitted';
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.borderLight),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(a.title, style: AppTextTheme.cardTitle),
-                    const SizedBox(height: 3),
-                    Text('Due: ${a.dueDate} · ${a.maxPoints} pts',
-                        style: AppTextTheme.timestamp),
-                    const SizedBox(height: 8),
-                    _StatusBadge(status: a.status),
-                  ],
-                ),
-              ),
-              if (isGraded && a.grade != null) ...[
-                Column(
-                  children: [
-                    Text(
-                      '${a.grade}',
-                      style: AppTextTheme.statValue.copyWith(
-                        color: a.grade! >= 90
-                            ? AppColors.success
-                            : a.grade! >= 70
-                            ? AppColors.warning
-                            : AppColors.error,
+            onTap: canOpenUpload
+                ? () {
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const UploadAssignmentScreen(),
                       ),
+                    );
+                  }
+                : null,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(a.title, style: AppTextTheme.cardTitle),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Due: ${a.dueDate} · ${a.maxPoints} pts',
+                          style: AppTextTheme.timestamp,
+                        ),
+                        const SizedBox(height: 8),
+                        _StatusBadge(status: a.status),
+                      ],
                     ),
-                    Text('/ ${a.maxPoints}',
-                        style: AppTextTheme.timestamp),
+                  ),
+                  if (isGraded && a.grade != null) ...[
+                    Column(
+                      children: [
+                        Text(
+                          '${a.grade}',
+                          style: AppTextTheme.statValue.copyWith(
+                            color: a.grade! >= 90
+                                ? AppColors.success
+                                : a.grade! >= 70
+                                    ? AppColors.warning
+                                    : AppColors.error,
+                          ),
+                        ),
+                        Text(
+                          '/ ${a.maxPoints}',
+                          style: AppTextTheme.timestamp,
+                        ),
+                      ],
+                    ),
                   ],
-                ),
-              ],
-            ],
+                ],
+              ),
+            ),
           ),
         );
       },

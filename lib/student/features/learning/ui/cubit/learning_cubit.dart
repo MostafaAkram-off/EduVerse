@@ -17,9 +17,9 @@ class LearningCubit extends Cubit<LearningState> {
 
       // A course is "completed" when progress is 100%
       final inProgress =
-      all.where((e) => e!.course.progressPercent < 100).toList();
+          all.where((e) => e.course.progressPercent < 100).toList();
       final completed =
-      all.where((e) => e!.course.progressPercent == 100).toList();
+          all.where((e) => e.course.progressPercent == 100).toList();
 
       emit(LearningLoaded(
         inProgress: inProgress,
@@ -36,8 +36,4 @@ class LearningCubit extends Cubit<LearningState> {
       emit((state as LearningLoaded).copyWith(activeTab: tab));
     }
   }
-}
-
-extension on Object {
-  get course => null;
 }

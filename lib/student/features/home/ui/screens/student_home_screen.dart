@@ -4,31 +4,52 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_text_theme.dart';
 import 'package:edu_verse/student/features/home/ui/cubit/home_cubit.dart';
 import 'package:edu_verse/student/features/courses/data/models/course_model.dart';
+import 'package:edu_verse/student/features/courses/ui/screens/course_detail_screen.dart';
 
 class StudentHomeScreen extends StatelessWidget {
-  const StudentHomeScreen({super.key});
+  const StudentHomeScreen({
+    super.key,
+    this.onSwitchTab,
+    this.onOpenNotifications,
+  });
+
+  /// Bottom tab index: 1 = Courses, 2 = My Learning.
+  final ValueChanged<int>? onSwitchTab;
+  final VoidCallback? onOpenNotifications;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => HomeCubit()..loadHome(),
-      child: const _HomeBody(),
+      child: _HomeBody(
+        onSwitchTab: onSwitchTab,
+        onOpenNotifications: onOpenNotifications,
+      ),
     );
   }
 }
 
 class _HomeBody extends StatelessWidget {
-  const _HomeBody();
+  const _HomeBody({
+    this.onSwitchTab,
+    this.onOpenNotifications,
+  });
+
+  final ValueChanged<int>? onSwitchTab;
+  final VoidCallback? onOpenNotifications;
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<HomeCubit, HomeState>(
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.background,
           body: switch (state) {
             HomeLoading() => const _HomeShimmer(),
-            HomeLoaded() => _HomeContent(state: state),
+            HomeLoaded() => _HomeContent(
+              state: state,
+              onSwitchTab: onSwitchTab,
+              onOpenNotifications: onOpenNotifications,
+            ),
             HomeError()  => _HomeErrorView(
               message: (state).message,
               onRetry: () => context.read<HomeCubit>().loadHome(),
@@ -46,7 +67,14 @@ class _HomeBody extends StatelessWidget {
 // ─────────────────────────────────────────────
 class _HomeContent extends StatelessWidget {
   final HomeLoaded state;
-  const _HomeContent({required this.state});
+  final ValueChanged<int>? onSwitchTab;
+  final VoidCallback? onOpenNotifications;
+
+  const _HomeContent({
+    required this.state,
+    this.onSwitchTab,
+    this.onOpenNotifications,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +84,7 @@ class _HomeContent extends StatelessWidget {
           // ── Header ──────────────────────────
           SliverToBoxAdapter(
             child: Container(
-              color: AppColors.surface,
+              color: Theme.of(context).colorScheme.surface,
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,7 +110,7 @@ class _HomeContent extends StatelessWidget {
                         ),
                       ),
                       _NotificationButton(
-                        onTap: () {},
+                        onTap: onOpenNotifications ?? () {},
                       ),
                     ],
                   ),
@@ -92,6 +120,7 @@ class _HomeContent extends StatelessWidget {
                   if (state.enrolledCourses.isNotEmpty)
                     _ContinueLearningBanner(
                       course: state.enrolledCourses.first,
+                      onResume: () => onSwitchTab?.call(2),
                     ),
                   const SizedBox(height: 4),
                 ],
@@ -136,7 +165,7 @@ class _HomeContent extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
               child: _SectionHeader(
                 title: 'Upcoming Sessions',
-                onSeeAll: () {},
+                onSeeAll: () => onSwitchTab?.call(2),
               ),
             ),
           ),
@@ -159,7 +188,7 @@ class _HomeContent extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 28, 20, 10),
               child: _SectionHeader(
                 title: 'Recommended Courses',
-                onSeeAll: () {},
+                onSeeAll: () => onSwitchTab?.call(1),
               ),
             ),
           ),
@@ -174,6 +203,15 @@ class _HomeContent extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 14),
                   child: _RecommendedCard(
                     course: state.recommendedCourses[index],
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => CourseDetailScreen(
+                            course: state.recommendedCourses[index],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -192,7 +230,11 @@ class _HomeContent extends StatelessWidget {
 // ─────────────────────────────────────────────
 class _ContinueLearningBanner extends StatelessWidget {
   final CourseModel course;
-  const _ContinueLearningBanner({required this.course});
+  final VoidCallback onResume;
+  const _ContinueLearningBanner({
+    required this.course,
+    required this.onResume,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +281,7 @@ class _ContinueLearningBanner extends StatelessWidget {
                 const SizedBox(height: 16),
                 // Resume button
                 GestureDetector(
-                  onTap: () {},
+                  onTap: onResume,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
@@ -401,12 +443,13 @@ class _SessionCard extends StatelessWidget {
 // ─────────────────────────────────────────────
 class _RecommendedCard extends StatelessWidget {
   final CourseModel course;
-  const _RecommendedCard({required this.course});
+  final VoidCallback onTap;
+  const _RecommendedCard({required this.course, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         width: 180,
         decoration: BoxDecoration(
