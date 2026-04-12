@@ -88,7 +88,7 @@ class _CourseHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 230,
+      height: (MediaQuery.of(context).size.height * 0.28).clamp(200.0, 260.0),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

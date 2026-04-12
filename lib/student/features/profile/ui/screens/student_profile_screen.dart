@@ -31,7 +31,7 @@ class StudentProfileScreen extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(20, 48, 20, 28),
+                  padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 28),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,

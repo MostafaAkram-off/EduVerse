@@ -82,7 +82,6 @@ class _CoursesContentState extends State<_CoursesContent> {
                 const SizedBox(height: 16),
                 // Search bar
                 Container(
-                  height: 46,
                   decoration: BoxDecoration(
                     color: AppColors.background,
                     borderRadius: BorderRadius.circular(12),
@@ -104,7 +103,7 @@ class _CoursesContentState extends State<_CoursesContent> {
                             hintStyle: AppTextTheme.inputHint,
                             border: InputBorder.none,
                             isDense: true,
-                            contentPadding: EdgeInsets.zero,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
                       ),
@@ -125,7 +124,7 @@ class _CoursesContentState extends State<_CoursesContent> {
                 const SizedBox(height: 14),
                 // Category filter chips
                 SizedBox(
-                  height: 34,
+                  height: MediaQuery.textScalerOf(context).scale(34).clamp(34.0, 52.0),
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: MockData.categories.length,

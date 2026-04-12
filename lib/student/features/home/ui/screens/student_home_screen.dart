@@ -194,7 +194,7 @@ class _HomeContent extends StatelessWidget {
           ),
           SliverToBoxAdapter(
             child: SizedBox(
-              height: 210,
+              height: (90 + 130 * MediaQuery.textScalerOf(context).scale(1.0)).clamp(220.0, 290.0),
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 scrollDirection: Axis.horizontal,
@@ -503,6 +503,8 @@ class _RecommendedCard extends StatelessWidget {
                   Text(
                     course.instructor,
                     style: AppTextTheme.timestamp,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Row(
