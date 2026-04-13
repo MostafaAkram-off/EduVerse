@@ -1,1 +1,5 @@
-// App Routes
+class AppRoutes {
+  AppRoutes._();
+
+  static const String instructorHome = '/instructor/home';
+}

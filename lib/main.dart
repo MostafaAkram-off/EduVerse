@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:edu_verse/config/di/di.dart';
+import 'package:edu_verse/core/navigation/app_router.dart';
+import 'package:edu_verse/core/theme/app_theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await setupDependencies();
   runApp(const EduVerseApp());
 }
 
@@ -9,26 +14,13 @@ class EduVerseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'EduVerse',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        // الألوان الأساسية حسب الهوية البصرية المقترحة
-        primaryColor: const Color(0xFF3F51B5), // Indigo Blue
-        scaffoldBackgroundColor: const Color(0xFFF5F5F7), // Grey White background
-        colorScheme: ColorScheme.fromSwatch().copyWith(
-          primary: const Color(0xFF3F51B5),
-          secondary: const Color(0xFFFF6F61), // Coral Orange for Actions
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 0,
-          centerTitle: true,
-        ),
-        fontFamily: 'Roboto', // يفضل استخدام خط مثل "Cairo" للعربي
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.light,
+      routerConfig: AppRouter.router,
     );
   }
 }
