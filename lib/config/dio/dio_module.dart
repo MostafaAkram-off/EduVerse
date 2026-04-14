@@ -2,8 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:edu_verse/core/constants/api_endpoints.dart';
-import 'package:edu_verse/core/navigation/app_routes.dart';
-import 'package:edu_verse/core/navigation/app_router.dart';
+// TODO: re-enable navigation imports when auth screens are merged into dev
+// import 'package:edu_verse/core/navigation/app_routes.dart';
+// import 'package:edu_verse/core/navigation/app_router.dart';
 
 class DioModule {
   DioModule._();
@@ -78,9 +79,9 @@ class DioModule {
               }
             }
 
-            // No refresh token or refresh failed — clear storage and go to login
+            // No refresh token or refresh failed — clear storage
+            // TODO: navigate to login once auth screens are merged into dev
             await _clearSession();
-            AppRouter.router.go(AppRoutes.login);
           }
 
           return handler.next(error);

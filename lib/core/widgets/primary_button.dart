@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
+import 'package:edu_verse/core/theme/app_text_theme.dart';
 
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
@@ -19,61 +20,66 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onPressed != null && !isLoading;
+
     Widget child = isLoading
         ? const SizedBox(
-            height: 20,
             width: 20,
+            height: 20,
             child: CircularProgressIndicator(
-              strokeWidth: 2.5,
+              strokeWidth: 2,
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           )
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 18, color: Colors.white),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          );
+        : icon != null
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(label,
+                      style: AppTextTheme.buttonMedium
+                          .colored(AppColors.textOnPrimary)),
+                  const SizedBox(width: 8),
+                  Icon(icon, size: 18, color: AppColors.textOnPrimary),
+                ],
+              )
+            : Text(label,
+                style:
+                    AppTextTheme.buttonMedium.colored(AppColors.textOnPrimary));
 
     return SizedBox(
       width: fullWidth ? double.infinity : null,
       height: 52,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.gradient1Start, AppColors.gradient1End],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
+          gradient: enabled
+              ? const LinearGradient(
+                  colors: [AppColors.gradient1Start, AppColors.gradient1End],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )
+              : null,
+          color: enabled ? null : AppColors.border,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.35),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: enabled
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.28),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
         ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            onTap: isLoading ? null : onPressed,
-            borderRadius: BorderRadius.circular(14),
-            child: Center(child: child),
+        child: ElevatedButton(
+          onPressed: isLoading ? null : onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
           ),
+          child: child,
         ),
       ),
     );
