@@ -1,29 +1,63 @@
+/// Generic API envelope. Adjust fields when your backend contract is confirmed.
 class BaseResponse<T> {
-  final bool success;
-  final String message;
-  final T? data;
-  final int? statusCode;
-
   const BaseResponse({
     required this.success,
-    required this.message,
+    this.message,
     this.data,
     this.statusCode,
+    this.raw,
   });
 
+  final bool success;
+  final String? message;
+  final T? data;
+  final int? statusCode;
+  final Object? raw;
+
+  /// Common patterns: `{ "success": true, "data": ... }` or `{ "message": "" }`
   factory BaseResponse.fromJson(
-    Map<String, dynamic> json,
-    T Function(dynamic)? fromData,
-  ) {
+    Map<String, dynamic> json, {
+    T Function(Object? json)? fromJsonT,
+    bool? success,
+    String? dataKey,
+  }) {
+    final bool resolvedSuccess;
+    if (success != null) {
+      resolvedSuccess = success;
+    } else if (json.containsKey('success')) {
+      resolvedSuccess = json['success'] as bool? ?? false;
+    } else {
+      resolvedSuccess = json['status'] == 'ok' || json['code'] == 200;
+    }
+    final msg = json['message'] as String? ??
+        json['error'] as String? ??
+        json['msg'] as String?;
+    final key = dataKey ?? 'data';
+    final payload = json.containsKey(key) ? json[key] : json;
     return BaseResponse<T>(
-      success:    json['success'] as bool? ?? false,
-      message:    json['message'] as String? ?? '',
-      statusCode: json['statusCode'] as int?,
-      data:       json['data'] != null && fromData != null
-                      ? fromData(json['data'])
-                      : null,
+      success:    resolvedSuccess,
+      message:    msg,
+      data:       fromJsonT != null ? fromJsonT(payload) : payload as T?,
+      statusCode: json['code'] as int? ?? json['statusCode'] as int?,
+      raw:        json,
     );
   }
+
+  factory BaseResponse.failure(String message, {int? statusCode, Object? raw}) =>
+      BaseResponse<T>(
+        success:    false,
+        message:    message,
+        statusCode: statusCode,
+        raw:        raw,
+      );
+
+  factory BaseResponse.ok(T data, {String? message, int? statusCode}) =>
+      BaseResponse<T>(
+        success:    true,
+        message:    message,
+        data:       data,
+        statusCode: statusCode,
+      );
 
   bool get hasData => data != null;
 

@@ -151,6 +151,16 @@ class AppTheme {
         backgroundColor: AppColors.darkCard,
         contentTextStyle: AppTextTheme.bodyMedium.colored(AppColors.darkText),
       ),
+
+      tabBarTheme: TabBarThemeData(
+        labelColor: AppColors.primary,
+        unselectedLabelColor: AppColors.darkTextSecondary,
+        indicatorColor: AppColors.primary,
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelStyle: AppTextTheme.labelLarge,
+        unselectedLabelStyle: AppTextTheme.labelMedium,
+        dividerColor: AppColors.darkBorder,
+      ),
     );
   }
 }
