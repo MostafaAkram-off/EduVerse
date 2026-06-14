@@ -553,19 +553,27 @@ class _BottomAction extends StatelessWidget {
           const SizedBox(width: 16),
           Expanded(
             child: course.isEnrolled
-                ? ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                ? Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.success,
+                            minimumSize: const Size(double.infinity, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            'Continue Learning',
+                            style: AppTextTheme.buttonMedium,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      'Continue Learning',
-                      style: AppTextTheme.buttonMedium,
-                    ),
+                      const SizedBox(width: 10),
+                      _RateButton(courseId: course.id),
+                    ],
                   )
                 : _GradientEnrollButton(
                     onPressed: () {
@@ -582,6 +590,122 @@ class _BottomAction extends StatelessWidget {
     );
   }
 }
+
+// ─── Rate button ─────────────────────────────────────────────
+
+class _RateButton extends StatefulWidget {
+  const _RateButton({required this.courseId});
+  final String courseId;
+
+  @override
+  State<_RateButton> createState() => _RateButtonState();
+}
+
+class _RateButtonState extends State<_RateButton> {
+  bool _submitted = false;
+
+  void _showRatingSheet() {
+    int selected = 0;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, set) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              left: 24, right: 24, top: 0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).dividerColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text('Rate this Course', style: AppTextTheme.displaySmall),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (i) {
+                  final star = i + 1;
+                  return GestureDetector(
+                    onTap: () => set(() => selected = star),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: Icon(
+                        star <= selected ? Icons.star_rounded : Icons.star_outline_rounded,
+                        size: 40,
+                        color: star <= selected ? AppColors.warning : AppColors.textSecondary,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: selected == 0
+                      ? null
+                      : () async {
+                          Navigator.of(ctx).pop();
+                          try {
+                            final dio = GetIt.instance<Dio>();
+                            await dio.post<dynamic>(
+                              ApiEndpoints.addRating,
+                              data: {'courseId': widget.courseId, 'ratingValue': selected},
+                            );
+                          } catch (_) {}
+                          if (mounted) setState(() => _submitted = true);
+                        },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: AppColors.textSecondary.withValues(alpha: 0.2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: Text('Submit Rating', style: AppTextTheme.buttonMedium),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: _submitted ? null : _showRatingSheet,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _submitted ? AppColors.success : AppColors.primary,
+        side: BorderSide(
+          color: _submitted ? AppColors.success : AppColors.primary,
+        ),
+        minimumSize: const Size(50, 50),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        padding: EdgeInsets.zero,
+      ),
+      child: Icon(
+        _submitted ? Icons.star_rounded : Icons.star_outline_rounded,
+        size: 22,
+        color: _submitted ? AppColors.success : AppColors.primary,
+      ),
+    );
+  }
+}
+
+// ─── Enroll button ────────────────────────────────────────────
 
 class _GradientEnrollButton extends StatelessWidget {
   final VoidCallback onPressed;

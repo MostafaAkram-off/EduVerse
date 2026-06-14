@@ -51,7 +51,10 @@ class CourseModel {
     return CourseModel(
       id:           json['id'] as String? ?? '',
       title:        json['title'] as String? ?? json['name'] as String? ?? '',
-      instructor:   '',
+      instructor:   json['instructorName'] as String? ??
+                    json['instructor'] as String? ??
+                    json['trainerName'] as String? ??
+                    json['createdBy'] as String? ?? '',
       category:     category,
       rating:       (json['rating'] as num?)?.toDouble() ?? 0.0,
       reviewsCount: json['reviewsCount'] as int? ?? 0,

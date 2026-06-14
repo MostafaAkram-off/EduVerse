@@ -27,14 +27,22 @@ abstract final class ApiEndpoints {
   static const String uploadProfilePicture = '/Cloud/Add/ProfilePicture';
 
   // ── Courses ───────────────────────────────────────────────
-  static const String getAllCourses   = '/Course/GetAll';
-  static const String addRating       = '/Course/AddRating';
+  static const String getAllCourses    = '/Course/GetAll';
+  static const String addRating        = '/Course/AddRating';
+  static const String addAssignment    = '/Course/AddAssignment';
   static String getCourseById(String id)              => '/Course/GetById/$id';
   static String searchCourses(String query)           => '/Course/search/$query';
   static String getCoursesByCategory(String catId)   => '/Course/GetByCategory/$catId';
-  static String getAllSessions(String courseId)       => '/Course/GetAllSessions/$courseId';
-  static String getAllAssignments(String courseId)    => '/Course/GetAllAssignments/$courseId';
-  static String getAssignmentsBySession(String sid)  => '/Course/GetAssignmentBySession/$sid';
+  static String getAllSessions(String courseId)        => '/Course/GetAllSessions/$courseId';
+  static String getSessionById(String id)             => '/Course/GetSessionById/$id';
+  static const String addSession                      = '/Course/AddSession';
+  static const String updateSession                   = '/Course/UpdateSession';
+  static String deleteSession(String id)              => '/Course/DeleteSession/$id';
+  static String getAllAssignments(String courseId)     => '/Course/GetAllAssignments/$courseId';
+  static String getAssignmentById(String id)          => '/Course/GetAssignmentById/$id';
+  static String getAssignmentsBySession(String sid)   => '/Course/GetAssignmentBySession/$sid';
+  static const String updateAssignment                = '/Course/UpdateAssignment';
+  static String deleteAssignment(String id)           => '/Course/DeleteAssignment/$id';
 
   // ── User ─────────────────────────────────────────────────
   // Enrollment
@@ -97,6 +105,8 @@ abstract final class ApiEndpoints {
       '/Instructor/Submission/$assignmentId/$studentId';
   static String gradeSubmission(String assignmentId, String studentId) =>
       '/Instructor/GradeSubmission/$assignmentId/$studentId';
+  static String instructorMark(String sessionId, String userId) =>
+      '/Instructor/Mark?sessionId=$sessionId&userId=$userId';
 
   // ── Recommendations ───────────────────────────────────────
   static const String recommendationsForMe      = '/Recommendation/ForMe';

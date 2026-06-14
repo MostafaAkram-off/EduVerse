@@ -579,7 +579,12 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
                   },
                   onSubmitted: (id) => setState(() => _submittedIds.add(id)),
                 ),
-                _ProgressTab(enrolled: widget.enrolled),
+                _ProgressTab(
+                  enrolled: widget.enrolled,
+                  sessions: _sessions,
+                  assignments: _assignments,
+                  submittedIds: _submittedIds,
+                ),
               ],
             ),
           ),
@@ -1061,26 +1066,39 @@ class _AssignmentsTab extends StatelessWidget {
 // ─────────────────────────────────────────────
 class _ProgressTab extends StatelessWidget {
   final EnrolledCourseModel enrolled;
-  const _ProgressTab({required this.enrolled});
+  final List<_ClassroomSession>? sessions;
+  final List<_ClassroomAssignment>? assignments;
+  final Set<String> submittedIds;
+
+  const _ProgressTab({
+    required this.enrolled,
+    required this.sessions,
+    required this.assignments,
+    required this.submittedIds,
+  });
 
   @override
   Widget build(BuildContext context) {
     final course = enrolled.course;
+    final totalSessions = sessions?.length ?? 0;
+    final totalAssignments = assignments?.length ?? 0;
+    final doneAssignments = submittedIds.length;
+
     final items = [
-      _ProgressItem(
-        label: 'Sessions Attended',
-        value: enrolled.attendedSessions,
-        total: enrolled.totalSessions,
-        color: AppColors.primary,
-      ),
-      _ProgressItem(
-        label: 'Assignments Done',
-        value: enrolled.assignments
-            .where((a) => a.status != 'pending')
-            .length,
-        total: enrolled.assignments.length,
-        color: AppColors.success,
-      ),
+      if (totalSessions > 0)
+        _ProgressItem(
+          label: 'Sessions Attended',
+          value: enrolled.attendedSessions,
+          total: totalSessions,
+          color: AppColors.primary,
+        ),
+      if (totalAssignments > 0)
+        _ProgressItem(
+          label: 'Assignments Done',
+          value: doneAssignments,
+          total: totalAssignments,
+          color: AppColors.success,
+        ),
       _ProgressItem(
         label: 'Overall Progress',
         value: course.progressPercent,

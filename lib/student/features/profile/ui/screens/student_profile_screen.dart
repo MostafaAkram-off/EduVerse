@@ -12,7 +12,7 @@ import 'package:edu_verse/core/theme/app_text_theme.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/features/auth/shared/auth_session.dart';
 import 'package:edu_verse/student/features/enrollment/ui/screens/payment_tracking_screen.dart';
-import 'edit_profile_screen.dart';
+import 'package:edu_verse/core/screens/edit_profile_screen.dart';
 import 'settings_screen.dart';
 
 class StudentProfileScreen extends StatefulWidget {
@@ -32,6 +32,7 @@ class StudentProfileScreen extends StatefulWidget {
 class _StudentProfileScreenState extends State<StudentProfileScreen> {
   int? _coursesCount;
   int? _certsCount;
+  int? _totalHours;
 
   @override
   void initState() {
@@ -54,8 +55,14 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       dio.get<dynamic>(ApiEndpoints.myEnrolledCourses).then((r) {
         final raw = r.data;
         final list = raw is List ? raw : (raw is Map ? ((raw['data'] ?? raw['courses'] ?? []) as List) : []);
-        if (mounted) setState(() => _coursesCount = list.length);
-      }).catchError((_) { if (mounted) setState(() => _coursesCount = 0); }),
+        int hrs = 0;
+        for (final e in list) {
+          final item = e as Map<String, dynamic>;
+          final cj = (item['course'] as Map<String, dynamic>?) ?? item;
+          hrs += ((cj['duration'] as num?)?.toInt() ?? 0);
+        }
+        if (mounted) setState(() { _coursesCount = list.length; _totalHours = hrs; });
+      }).catchError((_) { if (mounted) setState(() { _coursesCount = 0; _totalHours = 0; }); }),
       dio.get<dynamic>(ApiEndpoints.myCertificates).then((r) {
         final raw = r.data;
         final list = raw is List ? raw : (raw is Map ? ((raw['data'] ?? raw['certificates'] ?? []) as List) : []);
@@ -332,9 +339,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   const SizedBox(width: 12),
                   _StatTile(
                     label: l10n.statHours,
-                    value: _coursesCount != null
-                        ? '${(_coursesCount! * 6)}h'
-                        : '—',
+                    value: _totalHours != null ? '${_totalHours}h' : '—',
                     icon: Icons.schedule_rounded,
                     color: AppColors.warning,
                   ),

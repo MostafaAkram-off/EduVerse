@@ -111,9 +111,12 @@ class AppColors {
   static const Color gradientCard1     = indigoDeep;   // card gradient
   static const Color gradientCard2     = purpleCard;
 
-  // Shimmer
-  static const Color shimmerBase       = Color(0xFFF0F0F0);
-  static const Color shimmerHighlight  = Color(0xFFE0E0E0);
+  // Shimmer — light
+  static const Color shimmerBase          = Color(0xFFF0F0F0);
+  static const Color shimmerHighlight     = Color(0xFFE0E0E0);
+  // Shimmer — dark
+  static const Color shimmerBaseDark      = Color(0xFF1E293B);
+  static const Color shimmerHighlightDark = Color(0xFF334155);
 
   // Overlay / Scrim
   static Color get scrimLight          => grey900.withValues(alpha: 0.40);

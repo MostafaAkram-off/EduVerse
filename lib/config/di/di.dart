@@ -45,6 +45,9 @@ import 'package:edu_verse/features/auth/forgot_password/ui/cubit/forgot_password
 
 // ── Instructor ─────────────────────────────────────────────────────────────
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_cubit.dart';
+import 'package:edu_verse/features/instructor/ui/cubit/submissions_cubit.dart';
+import 'package:edu_verse/features/instructor/ui/cubit/course_detail_cubit.dart';
+import 'package:edu_verse/features/instructor/ui/cubit/session_detail_cubit.dart';
 
 // ── Student ────────────────────────────────────────────────────────────────
 import 'package:edu_verse/features/student/ui/cubit/student_cubit.dart';
@@ -121,7 +124,10 @@ void configureDependencies() {
         ));
 
   // ── Instructor ────────────────────────────────────────────────────────────
-  sl.registerFactory(() => InstructorCubit(sl()));
+  sl.registerFactory(() => InstructorCubit(sl(), sl()));
+  sl.registerFactory(() => InstructorSubmissionsCubit(sl()));
+  sl.registerFactory(() => InstructorCourseDetailCubit(sl(), sl()));
+  sl.registerFactory(() => InstructorSessionDetailCubit(sl(), sl()));
 
   // ── Student ───────────────────────────────────────────────────────────────
   sl.registerFactory(() => StudentCubit());

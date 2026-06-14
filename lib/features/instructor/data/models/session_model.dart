@@ -5,6 +5,7 @@ class SessionModel {
     required this.id,
     required this.courseId,
     required this.courseTitle,
+    required this.title,
     required this.startTime,
     required this.endTime,
     required this.studentsEnrolled,
@@ -16,12 +17,17 @@ class SessionModel {
   final String id;
   final String courseId;
   final String courseTitle;
+  final String title;
   final DateTime startTime;
   final DateTime endTime;
   final int studentsEnrolled;
   final String location;
   final bool isOnline;
   final SessionStatus status;
+
+  /// The session's own name. Falls back to courseTitle for APIs that only
+  /// return one title field.
+  String get displayTitle => title.isNotEmpty ? title : courseTitle;
 
   String get statusLabel => switch (status) {
         SessionStatus.upcoming  => 'Upcoming',
@@ -53,8 +59,11 @@ class SessionModel {
       id:               json['id']?.toString() ?? '',
       courseId:         json['courseId']?.toString() ?? json['course_id']?.toString() ?? '',
       courseTitle:      json['courseTitle']?.toString() ??
-                        json['course_title']?.toString() ??
-                        json['title']?.toString() ?? '',
+                        json['course_title']?.toString() ?? '',
+      title:            json['title']?.toString() ??
+                        json['sessionTitle']?.toString() ??
+                        json['session_title']?.toString() ??
+                        json['name']?.toString() ?? '',
       startTime:        start,
       endTime:          end,
       studentsEnrolled: (json['studentsEnrolled'] ?? json['students_enrolled'] ??

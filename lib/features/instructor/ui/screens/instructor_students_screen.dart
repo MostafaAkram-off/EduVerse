@@ -224,6 +224,12 @@ class _StudentCard extends StatelessWidget {
 
   BadgeType get _gradeType {
     final g = student.grade;
+    final v = double.tryParse(g);
+    if (v != null) {
+      if (v >= 90) return BadgeType.active;
+      if (v >= 75) return BadgeType.upcoming;
+      return BadgeType.draft;
+    }
     if (g.startsWith('A')) return BadgeType.active;
     if (g.startsWith('B')) return BadgeType.upcoming;
     return BadgeType.draft;
@@ -265,7 +271,7 @@ class _StudentCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Name + grade badge
+                // Name + grade badge (hidden when no grade)
                 Row(
                   children: [
                     Expanded(
@@ -276,11 +282,10 @@ class _StudentCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    AppBadge(
-                      label: student.grade,
-                      type: _gradeType,
-                    ),
+                    if (student.grade.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      AppBadge(label: student.grade, type: _gradeType),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 2),
@@ -329,21 +334,21 @@ class _StudentCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-
-                // Attendance
-                Row(
-                  children: [
-                    Icon(Icons.event_available_rounded,
-                        size: 13, color: _attendanceColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Attendance: ${student.attendance}%',
-                      style: AppTextTheme.labelSmall
-                          .colored(_attendanceColor),
-                    ),
-                  ],
-                ),
+                if (student.attendance > 0) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.event_available_rounded,
+                          size: 13, color: _attendanceColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Attendance: ${student.attendance}%',
+                        style: AppTextTheme.labelSmall
+                            .colored(_attendanceColor),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -391,7 +396,8 @@ class _StudentCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  AppBadge(label: student.grade, type: _gradeType),
+                  if (student.grade.isNotEmpty)
+                    AppBadge(label: student.grade, type: _gradeType),
                 ],
               ),
               const SizedBox(height: 20),
@@ -412,13 +418,15 @@ class _StudentCard extends StatelessWidget {
                 progress: student.progressPercent / 100,
                 color: AppColors.primary,
               ),
-              const SizedBox(height: 12),
-              _StudentStatRow(
-                label: 'Attendance',
-                value: '${student.attendance}%',
-                progress: student.attendance / 100,
-                color: _attendanceColor,
-              ),
+              if (student.attendance > 0) ...[
+                const SizedBox(height: 12),
+                _StudentStatRow(
+                  label: 'Attendance',
+                  value: '${student.attendance}%',
+                  progress: student.attendance / 100,
+                  color: _attendanceColor,
+                ),
+              ],
             ],
           ),
         ),

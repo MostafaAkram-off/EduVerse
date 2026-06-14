@@ -11,6 +11,7 @@ import 'package:edu_verse/core/widgets/shimmer_loading.dart';
 import 'package:edu_verse/features/instructor/data/models/session_model.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_cubit.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_state.dart';
+import 'package:edu_verse/features/instructor/ui/screens/instructor_session_detail_screen.dart';
 
 class InstructorSessionsScreen extends StatelessWidget {
   const InstructorSessionsScreen({super.key});
@@ -265,7 +266,7 @@ class _SessionTile extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                session.courseTitle,
+                                session.displayTitle,
                                 style: AppTextTheme.cardTitle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -353,86 +354,9 @@ class _SessionTile extends StatelessWidget {
   }
 
   void _showSessionDetail(BuildContext context, SessionModel s) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(
-                    color: context.borderLight,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(s.courseTitle,
-                        style: AppTextTheme.displaySmall),
-                  ),
-                  AppBadge(
-                    label: s.statusLabel,
-                    type: _badgeType(s.status),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _DetailRow(
-                icon: Icons.access_time_rounded,
-                label: DateFormatter.formatTimeRange(s.startTime, s.endTime),
-              ),
-              _DetailRow(
-                icon: s.isOnline ? Icons.videocam_rounded : Icons.location_on_rounded,
-                label: s.location,
-              ),
-              _DetailRow(
-                icon: Icons.people_outline_rounded,
-                label: '${s.studentsEnrolled} students enrolled',
-              ),
-              _DetailRow(
-                icon: Icons.calendar_today_rounded,
-                label: DateFormatter.formatDayMonth(s.startTime),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              color: context.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 18, color: context.primary),
-          ),
-          const SizedBox(width: 12),
-          Text(label, style: AppTextTheme.bodySemibold),
-        ],
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => InstructorSessionDetailScreen(session: s),
       ),
     );
   }

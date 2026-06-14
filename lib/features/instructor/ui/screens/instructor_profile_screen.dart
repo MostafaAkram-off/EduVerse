@@ -1,6 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
@@ -11,34 +14,11 @@ import 'package:edu_verse/core/preferences/app_preferences.dart';
 import 'package:edu_verse/features/auth/shared/auth_session.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_cubit.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_state.dart';
-import 'package:edu_verse/student/features/profile/ui/screens/edit_profile_screen.dart';
+import 'package:edu_verse/features/instructor/ui/screens/instructor_submissions_screen.dart';
+import 'package:edu_verse/core/screens/edit_profile_screen.dart';
 
 const _kGradientStart = Color(0xFFF97316);
 const _kGradientEnd   = Color(0xFFEF4444);
-
-// ─── Mock assignment reviews ──────────────────────────────────
-class _Review {
-  const _Review({
-    required this.student,
-    required this.assignment,
-    required this.course,
-    required this.submittedAgo,
-    required this.grade,
-  });
-  final String student;
-  final String assignment;
-  final String course;
-  final String submittedAgo;
-  final String grade;
-}
-
-const _mockReviews = [
-  _Review(student: 'Ahmed Khalid',  assignment: 'Flutter UI Challenge',   course: 'Mobile Dev',  submittedAgo: '2h ago',   grade: 'A'),
-  _Review(student: 'Mona Hassan',   assignment: 'REST API Integration',   course: 'Mobile Dev',  submittedAgo: '5h ago',   grade: 'B+'),
-  _Review(student: 'Youssef Nabil', assignment: 'Responsive Layout',      course: 'Web Dev',     submittedAgo: '1d ago',   grade: 'A-'),
-  _Review(student: 'Fatima Ali',    assignment: 'State Management Quiz',  course: 'Mobile Dev',  submittedAgo: '1d ago',   grade: 'B'),
-  _Review(student: 'Omar Samy',     assignment: 'CSS Grid Project',       course: 'Web Dev',     submittedAgo: '2d ago',   grade: 'A+'),
-];
 
 // ─── Screen ───────────────────────────────────────────────────
 
@@ -69,6 +49,7 @@ class _InstructorProfileScreenState
       MaterialPageRoute<void>(
         builder: (_) => const EditProfileScreen(
           gradientColors: [_kGradientStart, _kGradientEnd],
+          showSpecialization: true,
         ),
       ),
     );
@@ -80,6 +61,7 @@ class _InstructorProfileScreenState
     final newCtrl     = TextEditingController();
     final confirmCtrl = TextEditingController();
     String? error;
+    bool isLoading = false;
 
     showModalBottomSheet(
       context: context,
@@ -88,23 +70,42 @@ class _InstructorProfileScreenState
       builder: (_) => StatefulBuilder(
         builder: (ctx, setSheet) => _FormSheet(
           title: 'Change Password',
-          saveLabel: 'Update Password',
-          onSave: () {
-            if (currentCtrl.text.isEmpty) {
-              setSheet(() => error = 'Enter your current password');
-              return;
-            }
-            if (newCtrl.text.length < 6) {
-              setSheet(() => error = 'New password must be at least 6 characters');
-              return;
-            }
-            if (newCtrl.text != confirmCtrl.text) {
-              setSheet(() => error = 'Passwords do not match');
-              return;
-            }
-            Navigator.pop(context);
-            _snack('Password updated successfully');
-          },
+          saveLabel: isLoading ? 'Updating…' : 'Update Password',
+          onSave: isLoading
+              ? null
+              : () async {
+                  if (currentCtrl.text.isEmpty) {
+                    setSheet(() => error = 'Enter your current password');
+                    return;
+                  }
+                  if (newCtrl.text.length < 6) {
+                    setSheet(() => error = 'New password must be at least 6 characters');
+                    return;
+                  }
+                  if (newCtrl.text != confirmCtrl.text) {
+                    setSheet(() => error = 'Passwords do not match');
+                    return;
+                  }
+                  setSheet(() { error = null; isLoading = true; });
+                  try {
+                    final dio = GetIt.instance<Dio>();
+                    await dio.post<dynamic>(
+                      ApiEndpoints.changePassword,
+                      data: {
+                        'currentPassword': currentCtrl.text,
+                        'newPassword': newCtrl.text,
+                      },
+                    );
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    _snack('Password updated successfully');
+                  } catch (e) {
+                    final msg = (e is DioException)
+                        ? (e.response?.data?['message']?.toString() ??
+                            'Incorrect current password')
+                        : 'Failed to update password';
+                    setSheet(() { error = msg; isLoading = false; });
+                  }
+                },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -130,57 +131,8 @@ class _InstructorProfileScreenState
 
   // ── Assignment reviews ────────────────────────────────────
   void _showAssignmentReviews() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.93,
-        minChildSize: 0.4,
-        builder: (_, ctrl) => Container(
-          decoration: BoxDecoration(
-            color: context.bg,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              _SheetHandle(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Assignment Reviews',
-                        style: AppTextTheme.displaySmall),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text('${_mockReviews.length} pending',
-                          style: AppTextTheme.labelSmall
-                              .colored(AppColors.warning)
-                              .copyWith(fontSize: 12)),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.separated(
-                  controller: ctrl,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                  itemCount: _mockReviews.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (_, i) => _ReviewCard(review: _mockReviews[i]),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const InstructorSubmissionsScreen()),
     );
   }
 
@@ -414,7 +366,6 @@ class _InstructorProfileScreenState
                   icon: Icons.star_outline_rounded,
                   iconColor: AppColors.warning,
                   label: 'Assignment Reviews',
-                  trailing: _badge('${_mockReviews.length}'),
                   onTap: _showAssignmentReviews,
                   isLast: true,
                 ),
@@ -452,17 +403,6 @@ class _InstructorProfileScreenState
     );
   }
 
-  Widget _badge(String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(text,
-            style: AppTextTheme.labelSmall
-                .colored(AppColors.error)
-                .copyWith(fontSize: 12)),
-      );
 }
 
 // ─── Gradient header ─────────────────────────────────────────
@@ -692,14 +632,12 @@ class _MenuTile extends StatelessWidget {
     required this.iconColor,
     required this.label,
     required this.onTap,
-    this.trailing,
     this.isLast = false,
   });
   final IconData icon;
   final Color iconColor;
   final String label;
   final VoidCallback onTap;
-  final Widget? trailing;
   final bool isLast;
 
   @override
@@ -722,7 +660,6 @@ class _MenuTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 14),
                 Expanded(child: Text(label, style: AppTextTheme.cardTitle)),
-                if (trailing != null) ...[trailing!, const SizedBox(width: 6)],
                 Icon(Icons.chevron_right_rounded,
                     size: 20, color: context.textTertiary),
               ],
@@ -789,12 +726,12 @@ class _FormSheet extends StatelessWidget {
   const _FormSheet({
     required this.title,
     required this.child,
-    required this.onSave,
+    this.onSave,
     this.saveLabel = 'Save Changes',
   });
   final String title;
   final Widget child;
-  final VoidCallback onSave;
+  final Future<void> Function()? onSave;
   final String saveLabel;
 
   @override
@@ -822,7 +759,7 @@ class _FormSheet extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: onSave,
+                  onPressed: onSave == null ? null : () => onSave!(),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
@@ -977,99 +914,3 @@ class _ToggleTile extends StatelessWidget {
   }
 }
 
-// ─── Assignment review card ───────────────────────────────────
-
-class _ReviewCard extends StatelessWidget {
-  const _ReviewCard({required this.review});
-  final _Review review;
-
-  Color get _gradeColor {
-    final g = review.grade;
-    if (g.startsWith('A')) return AppColors.success;
-    if (g.startsWith('B')) return AppColors.primary;
-    return AppColors.warning;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.borderLight),
-      ),
-      child: Row(
-        children: [
-          AppAvatar(name: review.student, radius: 22),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(review.student, style: AppTextTheme.cardTitle),
-                const SizedBox(height: 2),
-                Text(review.assignment,
-                    style: AppTextTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(review.course,
-                        style: AppTextTheme.labelSmall
-                            .colored(AppColors.primary)
-                            .copyWith(fontSize: 11)),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(review.submittedAgo,
-                      style: AppTextTheme.timestamp),
-                ]),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            children: [
-              Container(
-                width: 42, height: 42,
-                decoration: BoxDecoration(
-                  color: _gradeColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(review.grade,
-                      style: AppTextTheme.labelLarge
-                          .colored(_gradeColor)),
-                ),
-              ),
-              const SizedBox(height: 6),
-              GestureDetector(
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Review for ${review.student} coming soon'),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    duration: const Duration(seconds: 2),
-                  ),
-                ),
-                child: Text('Review',
-                    style: AppTextTheme.labelSmall
-                        .colored(AppColors.primary)
-                        .copyWith(fontSize: 11)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:edu_verse/api/recommendations/recommendations_api_service.dart';
 import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/student/features/courses/data/models/course_model.dart';
 
@@ -13,10 +14,11 @@ class HomeCubit extends Cubit<HomeState> {
     emit(HomeLoading());
     try {
       final dio = GetIt.instance<Dio>();
+      final recommendationsApi = GetIt.instance<RecommendationsApiService>();
 
       final results = await Future.wait([
         dio.get<dynamic>(ApiEndpoints.myEnrolledCourses),
-        dio.get<dynamic>(ApiEndpoints.getAllCourses),
+        recommendationsApi.getForMe(),
       ]);
 
       // Parse enrolled courses
@@ -33,30 +35,37 @@ class HomeCubit extends Cubit<HomeState> {
         final item = e as Map<String, dynamic>;
         final courseJson = (item['course'] as Map<String, dynamic>?) ?? item;
         totalHoursAccum += (courseJson['duration'] as num?)?.toDouble() ?? 0;
-        final model = CourseModel.fromJson(courseJson);
+        final progress = (item['progressPercent'] as num?)?.toInt() ??
+            (item['progress'] as num?)?.toInt() ??
+            (courseJson['progressPercent'] as num?)?.toInt() ??
+            (courseJson['progress'] as num?)?.toInt() ?? 0;
+        final model = CourseModel.fromJson(courseJson)
+            .copyWith(progressPercent: progress, isEnrolled: true);
         if (model.id.isNotEmpty) enrolledCourses.add(model);
       }
 
-      // Parse all courses for recommendations (exclude enrolled ones)
-      final allRaw = results[1].data;
-      final allList = allRaw is List
-          ? allRaw
-          : allRaw is Map
-              ? ((allRaw['data'] ?? allRaw['courses'] ?? []) as List)
+      // Parse personalized recommendations from API
+      final recRaw = results[1].data;
+      final recList = recRaw is List
+          ? recRaw
+          : recRaw is Map
+              ? ((recRaw['data'] ?? recRaw['courses'] ?? recRaw['recommendations'] ?? []) as List)
               : <dynamic>[];
 
-      final enrolledIds = enrolledCourses.map((c) => c.id).toSet();
-      final recommendations = allList
+      final recommendations = recList
           .map((e) => CourseModel.fromJson(e as Map<String, dynamic>))
-          .where((c) => c.id.isNotEmpty && !enrolledIds.contains(c.id))
+          .where((c) => c.id.isNotEmpty)
           .take(10)
           .toList();
+
+      final completedCount =
+          enrolledCourses.where((c) => c.progressPercent >= 100).length;
 
       emit(HomeLoaded(
         enrolledCourses: enrolledCourses,
         upcomingSessions: const [],
         recommendedCourses: recommendations,
-        completedCourses: 0,
+        completedCourses: completedCount,
         totalHours: totalHoursAccum.round(),
       ));
     } catch (e) {

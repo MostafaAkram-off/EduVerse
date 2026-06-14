@@ -24,7 +24,7 @@ extension ThemeExt on BuildContext {
       ? const Color(0xFF94A3B8)
       : const Color(0xFF6B7280);
   Color get textTertiary => isDark
-      ? const Color(0xFF475569)
+      ? const Color(0xFF64748B)
       : const Color(0xFF9CA3AF);
 
   // Border

@@ -15,7 +15,7 @@ import 'package:edu_verse/features/student/ui/cubit/student_cubit.dart';
 import 'package:edu_verse/features/student/ui/cubit/student_state.dart';
 import 'package:edu_verse/student/features/certificates/ui/screens/certificates_screen.dart';
 import 'package:edu_verse/student/features/notifications/ui/screens/notifications_screen.dart';
-import 'package:edu_verse/student/features/profile/ui/screens/edit_profile_screen.dart';
+import 'package:edu_verse/core/screens/edit_profile_screen.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({super.key});

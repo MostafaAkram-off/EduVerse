@@ -373,11 +373,12 @@ class _CourseCard extends StatelessWidget {
                     Icon(Icons.menu_book_rounded, size: 44, color: Colors.white),
                   ),
                 ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: _LevelBadge(level: course.level),
-                ),
+                if (course.level.isNotEmpty)
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: _LevelBadge(level: course.level),
+                  ),
               ],
             ),
             // Details

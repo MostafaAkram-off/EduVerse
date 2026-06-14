@@ -33,4 +33,22 @@ class InstructorApiService {
         ApiEndpoints.gradeSubmission(assignmentId, studentId),
         data: body,
       );
+
+  Future<Response<dynamic>> createAssignment(FormData data) =>
+      _dio.post(ApiEndpoints.addAssignment, data: data);
+
+  Future<Response<dynamic>> addSession(FormData data) =>
+      _dio.post(ApiEndpoints.addSession, data: data);
+
+  Future<Response<dynamic>> markStudentAttendance(
+    String sessionId,
+    String userId,
+  ) =>
+      _dio.post(ApiEndpoints.instructorMark(sessionId, userId));
+
+  Future<Response<dynamic>> deleteSession(String id) =>
+      _dio.delete(ApiEndpoints.deleteSession(id));
+
+  Future<Response<dynamic>> deleteAssignment(String id) =>
+      _dio.delete(ApiEndpoints.deleteAssignment(id));
 }

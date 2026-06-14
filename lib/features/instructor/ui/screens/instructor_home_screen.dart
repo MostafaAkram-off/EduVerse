@@ -13,10 +13,12 @@ import 'package:edu_verse/core/widgets/shimmer_loading.dart';
 import 'package:edu_verse/features/instructor/data/models/session_model.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_cubit.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_state.dart';
+import 'package:edu_verse/features/instructor/ui/screens/instructor_session_detail_screen.dart';
 import 'package:edu_verse/student/features/notifications/ui/screens/notifications_screen.dart';
 
 class InstructorHomeScreen extends StatelessWidget {
-  const InstructorHomeScreen({super.key});
+  const InstructorHomeScreen({super.key, this.onNavigateToTab});
+  final void Function(int)? onNavigateToTab;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +29,7 @@ class InstructorHomeScreen extends StatelessWidget {
           body: switch (state) {
             InstructorLoading() || InstructorInitial() => _LoadingSkeleton(),
             InstructorLoaded() =>
-              _HomeBody(state: state),
+              _HomeBody(state: state, onNavigateToTab: onNavigateToTab),
             InstructorError(:final message) => ErrorState(
                 message: message,
                 onRetry: () =>
@@ -44,8 +46,9 @@ class InstructorHomeScreen extends StatelessWidget {
 // ─── Loaded body ──────────────────────────────────────────────
 
 class _HomeBody extends StatelessWidget {
-  const _HomeBody({required this.state});
+  const _HomeBody({required this.state, this.onNavigateToTab});
   final InstructorLoaded state;
+  final void Function(int)? onNavigateToTab;
 
   @override
   Widget build(BuildContext context) {
@@ -93,18 +96,21 @@ class _HomeBody extends StatelessWidget {
                     color: AppColors.primary,
                     trend: state.stats.studentsTrend,
                     trendUp: true,
+                    onTap: () => onNavigateToTab?.call(3),
                   ),
                   AppStatCard(
                     label: 'Active Courses',
                     value: '${state.stats.activeCourses}',
                     icon: Icons.book_rounded,
                     color: AppColors.secondary,
+                    onTap: () => onNavigateToTab?.call(1),
                   ),
                   AppStatCard(
                     label: 'Sessions Today',
                     value: '${state.stats.sessionsToday}',
                     icon: Icons.today_rounded,
                     color: AppColors.warning,
+                    onTap: () => onNavigateToTab?.call(2),
                   ),
                   AppStatCard(
                     label: 'Completion',
@@ -114,6 +120,7 @@ class _HomeBody extends StatelessWidget {
                     color: AppColors.success,
                     trend: state.stats.completionTrend,
                     trendUp: true,
+                    onTap: () => onNavigateToTab?.call(1),
                   ),
                 ],
               ),
@@ -124,7 +131,7 @@ class _HomeBody extends StatelessWidget {
               if (state.todaySessions.isNotEmpty) ...[
                 _SectionHeader(
                   title: "Today's Sessions",
-                  onSeeAll: () {},
+                  onSeeAll: () => onNavigateToTab?.call(2),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -134,8 +141,15 @@ class _HomeBody extends StatelessWidget {
                     itemCount: state.todaySessions.length,
                     separatorBuilder: (_, __) =>
                         const SizedBox(width: 12),
-                    itemBuilder: (_, i) =>
-                        _SessionCard(session: state.todaySessions[i]),
+                    itemBuilder: (_, i) => GestureDetector(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => InstructorSessionDetailScreen(
+                              session: state.todaySessions[i]),
+                        ),
+                      ),
+                      child: _SessionCard(session: state.todaySessions[i]),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 28),
@@ -145,13 +159,24 @@ class _HomeBody extends StatelessWidget {
               if (state.upcomingSessions.isNotEmpty) ...[
                 _SectionHeader(
                   title: 'Upcoming',
-                  onSeeAll: () {},
+                  onSeeAll: () => onNavigateToTab?.call(2),
                 ),
                 const SizedBox(height: 12),
                 ...state.upcomingSessions.take(3).map(
-                    (s) => _UpcomingTile(session: s)),
+                  (s) => GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            InstructorSessionDetailScreen(session: s),
+                      ),
+                    ),
+                    child: _UpcomingTile(session: s),
+                  ),
+                ),
                 const SizedBox(height: 24),
               ],
+
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 64),
             ]),
           ),
         ),
@@ -334,7 +359,7 @@ class _SessionCard extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          Text(session.courseTitle,
+          Text(session.displayTitle,
               style: AppTextTheme.cardTitle,
               maxLines: 2,
               overflow: TextOverflow.ellipsis),
@@ -415,7 +440,7 @@ class _UpcomingTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(session.courseTitle,
+                Text(session.displayTitle,
                     style: AppTextTheme.cardTitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
@@ -458,6 +483,9 @@ class _UpcomingTile extends StatelessWidget {
 class _LoadingSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final shimBase = isDark ? AppColors.shimmerBaseDark : AppColors.shimmerBase;
+    final shimHigh = isDark ? AppColors.shimmerHighlightDark : AppColors.shimmerHighlight;
     return CustomScrollView(
       slivers: [
         SliverAppBar(
@@ -468,10 +496,7 @@ class _LoadingSkeleton extends StatelessWidget {
             background: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    AppColors.shimmerBase,
-                    AppColors.shimmerHighlight,
-                  ],
+                  colors: [shimBase, shimHigh],
                 ),
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(28),

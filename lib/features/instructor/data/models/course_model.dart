@@ -29,4 +29,70 @@ class CourseModel {
 
   String get statusLabel =>
       status == CourseStatus.active ? 'Active' : 'Draft';
+
+  factory CourseModel.fromJson(Map<String, dynamic> json) {
+    final rawId = (json['id'] ?? json['courseId'] ?? '').toString();
+    final category = (json['category'] ??
+            json['categoryName'] ??
+            json['subject'] ??
+            'General')
+        .toString();
+
+    final statusStr =
+        (json['status'] ?? json['courseStatus'] ?? '').toString().toLowerCase();
+    final status =
+        statusStr == 'draft' ? CourseStatus.draft : CourseStatus.active;
+
+    final rawRate = json['completionRate'] ??
+        json['completion_rate'] ??
+        json['progress'] ??
+        0;
+    final completionRate =
+        (rawRate is int ? rawRate.toDouble() : (rawRate as num).toDouble())
+            .clamp(0.0, 1.0);
+
+    return CourseModel(
+      id: rawId,
+      title: (json['title'] ?? json['courseName'] ?? json['name'] ?? 'Course')
+          .toString(),
+      category: category,
+      description:
+          (json['description'] ?? json['about'] ?? '').toString(),
+      studentsCount:
+          (json['studentsCount'] ?? json['enrolledStudents'] ?? json['students'] ?? 0) as int,
+      sessionsCount:
+          (json['sessionsCount'] ?? json['sessions'] ?? 0) as int,
+      status: status,
+      coverGradient: _gradientFor(category, rawId),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      completionRate: completionRate,
+    );
+  }
+
+  static List<Color> _gradientFor(String category, String id) {
+    switch (category.toLowerCase()) {
+      case 'mobile dev':
+        return const [Color(0xFF4A6CF7), Color(0xFF7C3AED)];
+      case 'web dev':
+        return const [Color(0xFF22C55E), Color(0xFF059669)];
+      case 'design':
+        return const [Color(0xFF7C3AED), Color(0xFFEC4899)];
+      case 'data':
+        return const [Color(0xFF0EA5E9), Color(0xFF6366F1)];
+      case 'infrastructure':
+        return const [Color(0xFF475569), Color(0xFF0F172A)];
+      default:
+        final hash = id.hashCode.abs() % _defaultGradients.length;
+        return _defaultGradients[hash];
+    }
+  }
+
+  static const _defaultGradients = [
+    [Color(0xFFF59E0B), Color(0xFFEF4444)],
+    [Color(0xFF4A6CF7), Color(0xFF7C3AED)],
+    [Color(0xFF22C55E), Color(0xFF059669)],
+    [Color(0xFF0EA5E9), Color(0xFF6366F1)],
+  ];
 }

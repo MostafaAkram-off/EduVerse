@@ -5,16 +5,17 @@ class AppPreferences extends ChangeNotifier {
   AppPreferences._();
   static final AppPreferences instance = AppPreferences._();
 
-  static const _kDarkMode       = 'app_dark_mode';
-  static const _kName           = 'profile_display_name';
-  static const _kEmail          = 'profile_email';
-  static const _kPhone          = 'profile_phone';
-  static const _kOnboardingSeen = 'onboarding_seen';
-  static const _kProfilePicture = 'profile_picture_filename';
-  static const _kToken          = 'auth_token';
-  static const _kRefreshToken   = 'auth_refresh_token';
-  static const _kRole           = 'auth_role';
-  static const _kUserId         = 'auth_user_id';
+  static const _kDarkMode          = 'app_dark_mode';
+  static const _kName              = 'profile_display_name';
+  static const _kEmail             = 'profile_email';
+  static const _kPhone             = 'profile_phone';
+  static const _kSpecialization    = 'profile_specialization';
+  static const _kOnboardingSeen    = 'onboarding_seen';
+  static const _kProfilePicture    = 'profile_picture_filename';
+  static const _kToken             = 'auth_token';
+  static const _kRefreshToken      = 'auth_refresh_token';
+  static const _kRole              = 'auth_role';
+  static const _kUserId            = 'auth_user_id';
 
   bool    _loaded      = false;
   bool    _darkMode    = false;
@@ -22,6 +23,7 @@ class AppPreferences extends ChangeNotifier {
   String  _userName    = '';
   String  _userEmail   = '';
   String  _userPhone   = '';
+  String  _userSpecialization = '';
   String  _profilePictureFilename = '';
   String? _savedToken;
   String? _savedRefreshToken;
@@ -31,9 +33,10 @@ class AppPreferences extends ChangeNotifier {
   bool    get loaded       => _loaded;
   bool    get darkMode     => _darkMode;
   bool    get hasSeenOnboarding => _onboardingSeen;
-  String  get userName     => _userName;
-  String  get userEmail    => _userEmail;
-  String  get userPhone    => _userPhone;
+  String  get userName             => _userName;
+  String  get userEmail            => _userEmail;
+  String  get userPhone            => _userPhone;
+  String  get userSpecialization   => _userSpecialization;
   String  get profilePictureFilename => _profilePictureFilename;
   bool    get hasSession   => _savedToken != null && _savedToken!.isNotEmpty;
   String? get savedToken   => _savedToken;
@@ -47,9 +50,10 @@ class AppPreferences extends ChangeNotifier {
     final p = await SharedPreferences.getInstance();
     _darkMode            = p.getBool(_kDarkMode) ?? false;
     _onboardingSeen      = p.getBool(_kOnboardingSeen) ?? false;
-    _userName            = p.getString(_kName) ?? '';
-    _userEmail           = p.getString(_kEmail) ?? '';
-    _userPhone           = p.getString(_kPhone) ?? '';
+    _userName               = p.getString(_kName) ?? '';
+    _userEmail              = p.getString(_kEmail) ?? '';
+    _userPhone              = p.getString(_kPhone) ?? '';
+    _userSpecialization     = p.getString(_kSpecialization) ?? '';
     _profilePictureFilename = p.getString(_kProfilePicture) ?? '';
     _savedToken          = p.getString(_kToken);
     _savedRefreshToken   = p.getString(_kRefreshToken);
@@ -118,15 +122,20 @@ class AppPreferences extends ChangeNotifier {
     required String name,
     required String email,
     required String phone,
+    String? specialization,
   }) async {
     _userName  = name.trim();
     _userEmail = email.trim();
     _userPhone = phone.trim();
+    if (specialization != null) _userSpecialization = specialization.trim();
     notifyListeners();
     final p = await SharedPreferences.getInstance();
     await p.setString(_kName, _userName);
     await p.setString(_kEmail, _userEmail);
     await p.setString(_kPhone, _userPhone);
+    if (specialization != null) {
+      await p.setString(_kSpecialization, _userSpecialization);
+    }
   }
 
   Future<void> saveProfilePicture(String filename) async {

@@ -142,7 +142,13 @@ class _HomeContent extends StatelessWidget {
                   if (state.enrolledCourses.isNotEmpty)
                     _ContinueLearningBanner(
                       course: state.enrolledCourses.first,
-                      onResume: () => onSwitchTab?.call(2),
+                      onResume: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => CourseDetailScreen(
+                            course: state.enrolledCourses.first,
+                          ),
+                        ),
+                      ),
                     ),
                   const SizedBox(height: 4),
                 ],
@@ -181,26 +187,35 @@ class _HomeContent extends StatelessWidget {
             ),
           ),
 
-          // ── Upcoming sessions ────────────────
+          // ── My Courses ────────────────────────
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-              child: _SectionHeader(
-                title: 'Upcoming Sessions',
-                onSeeAll: () => onSwitchTab?.call(2),
-              ),
-            ),
+            child: state.enrolledCourses.isEmpty
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+                    child: _SectionHeader(
+                      title: 'My Courses',
+                      onSeeAll: () => onSwitchTab?.call(2),
+                    ),
+                  ),
           ),
           SliverList(
             delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                final s = state.upcomingSessions[index];
+              (context, index) {
+                final course = state.enrolledCourses[index];
                 return Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                  child: _SessionCard(session: s),
+                  child: _InProgressCard(
+                    course: course,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => CourseDetailScreen(course: course),
+                      ),
+                    ),
+                  ),
                 );
               },
-              childCount: state.upcomingSessions.length,
+              childCount: state.enrolledCourses.take(3).length,
             ),
           ),
 
@@ -390,71 +405,85 @@ class _StatCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// SESSION CARD
+// IN-PROGRESS COURSE CARD
 // ─────────────────────────────────────────────
-class _SessionCard extends StatelessWidget {
-  final Map<String, dynamic> session;
-  const _SessionCard({required this.session});
+class _InProgressCard extends StatelessWidget {
+  final CourseModel course;
+  final VoidCallback onTap;
+  const _InProgressCard({required this.course, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final isLive = session['status'] == 'live';
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.surface,
+    return Material(
+      color: context.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.borderLight),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: context.borderLight),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: course.color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.menu_book_rounded,
+                    color: course.color, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _Badge(
-                      text: isLive ? 'LIVE' : 'Upcoming',
-                      color: isLive ? AppColors.error : AppColors.primary,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  session['title'],
-                  style: AppTextTheme.bodyLarge,
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  session['course'],
-                  style: AppTextTheme.cardSubtitle,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.access_time,
-                        size: 13, color: context.textTertiary),
-                    const SizedBox(width: 4),
                     Text(
-                      '${session['date']} · ${session['time']}',
-                      style: AppTextTheme.timestamp,
+                      course.title,
+                      style: AppTextTheme.bodyLarge,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (course.category.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(course.category, style: AppTextTheme.timestamp),
+                    ],
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              value: course.progressPercent / 100,
+                              minHeight: 4,
+                              backgroundColor: context.borderLight,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  course.color),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${course.progressPercent}%',
+                          style: AppTextTheme.timestamp,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right,
+                  size: 18, color: context.textTertiary),
+            ],
           ),
-          Icon(Icons.chevron_right,
-              size: 20, color: context.textTertiary),
-        ],
+        ),
       ),
     );
   }
@@ -584,26 +613,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _Badge extends StatelessWidget {
-  final String text;
-  final Color color;
-  const _Badge({required this.text, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        text,
-        style: AppTextTheme.badgeSm.copyWith(color: color, fontSize: 10),
-      ),
-    );
-  }
-}
 
 class _Avatar extends StatelessWidget {
   final String initials;
@@ -696,46 +705,70 @@ class _NotificationButton extends StatelessWidget {
 // ─────────────────────────────────────────────
 // SHIMMER LOADING
 // ─────────────────────────────────────────────
-class _HomeShimmer extends StatelessWidget {
+class _HomeShimmer extends StatefulWidget {
   const _HomeShimmer();
 
   @override
+  State<_HomeShimmer> createState() => _HomeShimmerState();
+}
+
+class _HomeShimmerState extends State<_HomeShimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat(reverse: true);
+
+  late final Animation<double> _fade =
+      Tween(begin: 0.45, end: 1.0).animate(
+    CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+  );
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header shimmer
-            Row(children: [
-              _Shimmer(width: 44, height: 44, radius: 22),
-              const SizedBox(width: 12),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _Shimmer(width: 80, height: 12),
-                const SizedBox(height: 6),
-                _Shimmer(width: 140, height: 16),
+    return FadeTransition(
+      opacity: _fade,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                _Shimmer(width: 44, height: 44, radius: 22),
+                const SizedBox(width: 12),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _Shimmer(width: 80, height: 12),
+                  const SizedBox(height: 6),
+                  _Shimmer(width: 140, height: 16),
+                ]),
               ]),
-            ]),
-            const SizedBox(height: 20),
-            // Banner shimmer
-            _Shimmer(width: double.infinity, height: 120, radius: 20),
-            const SizedBox(height: 20),
-            // Stats shimmer
-            Row(children: [
-              Expanded(child: _Shimmer(height: 80, radius: 14)),
-              const SizedBox(width: 12),
-              Expanded(child: _Shimmer(height: 80, radius: 14)),
-              const SizedBox(width: 12),
-              Expanded(child: _Shimmer(height: 80, radius: 14)),
-            ]),
-            const SizedBox(height: 28),
-            _Shimmer(width: 160, height: 16),
-            const SizedBox(height: 12),
-            _Shimmer(width: double.infinity, height: 90, radius: 14),
-            const SizedBox(height: 10),
-            _Shimmer(width: double.infinity, height: 90, radius: 14),
-          ],
+              const SizedBox(height: 20),
+              _Shimmer(width: double.infinity, height: 120, radius: 20),
+              const SizedBox(height: 20),
+              Row(children: [
+                Expanded(child: _Shimmer(height: 80, radius: 14)),
+                const SizedBox(width: 12),
+                Expanded(child: _Shimmer(height: 80, radius: 14)),
+                const SizedBox(width: 12),
+                Expanded(child: _Shimmer(height: 80, radius: 14)),
+              ]),
+              const SizedBox(height: 28),
+              _Shimmer(width: 120, height: 16),
+              const SizedBox(height: 12),
+              _Shimmer(width: double.infinity, height: 76, radius: 14),
+              const SizedBox(height: 10),
+              _Shimmer(width: double.infinity, height: 76, radius: 14),
+              const SizedBox(height: 10),
+              _Shimmer(width: double.infinity, height: 76, radius: 14),
+            ],
+          ),
         ),
       ),
     );
@@ -747,11 +780,7 @@ class _Shimmer extends StatelessWidget {
   final double height;
   final double radius;
 
-  const _Shimmer({
-    this.width,
-    required this.height,
-    this.radius = 8,
-  });
+  const _Shimmer({this.width, required this.height, this.radius = 8});
 
   @override
   Widget build(BuildContext context) {

@@ -53,7 +53,7 @@ class _InstructorMainScreenState extends State<InstructorMainScreen> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const InstructorHomeScreen(),
+      InstructorHomeScreen(onNavigateToTab: _switchTab),
       const InstructorCoursesScreen(),
       const InstructorSessionsScreen(),
       const InstructorStudentsScreen(),

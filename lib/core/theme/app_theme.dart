@@ -99,7 +99,7 @@ class AppTheme {
         onSurface:            AppColors.darkText,
         surfaceContainerHighest: AppColors.darkBackground,
         outline:              AppColors.darkBorder,
-        outlineVariant:       AppColors.darkSurface,
+        outlineVariant:       Color(0xFF253347), // visible but subtle border in dark
       ),
 
       textTheme: AppTextTheme.materialThemeDark,
@@ -108,6 +108,8 @@ class AppTheme {
         backgroundColor: AppColors.darkCard,
         foregroundColor: AppColors.darkText,
         titleTextStyle: AppTextTheme.appBarTitle.colored(AppColors.darkText),
+        iconTheme: const IconThemeData(color: AppColors.darkText, size: 22),
+        actionsIconTheme: const IconThemeData(color: AppColors.darkText, size: 22),
         systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarColor:           Colors.transparent,
           statusBarIconBrightness:  Brightness.light,
