@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:edu_verse/core/l10n/app_localizations.dart';
 import 'package:edu_verse/core/preferences/app_preferences.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
@@ -12,12 +14,95 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _push = true;
-  bool _email = true;
+  static const _kPush              = 'settings_push';
+  static const _kEmail             = 'settings_email';
+  static const _kSessionReminders  = 'settings_session_reminders';
+  static const _kGradeAlerts       = 'settings_grade_alerts';
+  static const _kBiometric         = 'settings_biometric';
+  static const _kAutoDownload      = 'settings_auto_download';
+
+  bool _push             = true;
+  bool _email            = true;
   bool _sessionReminders = true;
-  bool _gradeAlerts = true;
-  bool _biometric = true;
-  bool _autoDownload = false;
+  bool _gradeAlerts      = true;
+  bool _biometric        = true;
+  bool _autoDownload     = false;
+  bool _settingsLoaded   = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final p = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _push             = p.getBool(_kPush)             ?? true;
+      _email            = p.getBool(_kEmail)            ?? true;
+      _sessionReminders = p.getBool(_kSessionReminders) ?? true;
+      _gradeAlerts      = p.getBool(_kGradeAlerts)      ?? true;
+      _biometric        = p.getBool(_kBiometric)        ?? true;
+      _autoDownload     = p.getBool(_kAutoDownload)     ?? false;
+      _settingsLoaded   = true;
+    });
+  }
+
+  Future<void> _save(String key, bool value) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(key, value);
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open link'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearCache() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Clear Cache?'),
+        content: const Text(
+          'This will clear all cached images and temporary data.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    PaintingBinding.instance.imageCache.clear();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cache cleared successfully'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,166 +116,176 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         title: Text(l10n.settingsTitle),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          ListenableBuilder(
-            listenable: AppPreferences.instance,
-            builder: (context, _) {
-              final p = AppPreferences.instance;
-              return _Section(
-                title: l10n.appearance,
+      body: _settingsLoaded
+          ? _buildBody(context, l10n)
+          : const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, AppLocalizations l10n) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        ListenableBuilder(
+          listenable: AppPreferences.instance,
+          builder: (context, _) {
+            final p = AppPreferences.instance;
+            return _Section(
+              title: l10n.appearance,
+              children: [
+                _ToggleTile(
+                  icon: Icons.dark_mode_outlined,
+                  label: l10n.darkMode,
+                  subtitle: l10n.darkModeDesc,
+                  value: p.darkMode,
+                  onChanged: (v) => p.setDarkMode(v),
+                  accent: AppColors.secondary,
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        _Section(
+          title: 'Notifications',
+          children: [
+            _ToggleTile(
+              icon: Icons.notifications_outlined,
+              label: 'Push Notifications',
+              subtitle: 'All app notifications',
+              value: _push,
+              onChanged: (v) {
+                setState(() => _push = v);
+                _save(_kPush, v);
+              },
+            ),
+            _ToggleTile(
+              icon: Icons.mail_outline_rounded,
+              label: 'Email Alerts',
+              subtitle: 'Important updates via email',
+              value: _email,
+              onChanged: (v) {
+                setState(() => _email = v);
+                _save(_kEmail, v);
+              },
+            ),
+            _ToggleTile(
+              icon: Icons.event_note_rounded,
+              label: 'Session Reminders',
+              subtitle: '30 min before sessions',
+              value: _sessionReminders,
+              onChanged: (v) {
+                setState(() => _sessionReminders = v);
+                _save(_kSessionReminders, v);
+              },
+              accent: AppColors.success,
+            ),
+            _ToggleTile(
+              icon: Icons.grade_outlined,
+              label: 'Grade Alerts',
+              subtitle: 'When assignments are graded',
+              value: _gradeAlerts,
+              onChanged: (v) {
+                setState(() => _gradeAlerts = v);
+                _save(_kGradeAlerts, v);
+              },
+              accent: AppColors.warning,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _Section(
+          title: 'Security',
+          children: [
+            _ToggleTile(
+              icon: Icons.fingerprint_rounded,
+              label: 'Biometric Login',
+              subtitle: 'Face ID / Fingerprint',
+              value: _biometric,
+              onChanged: (v) {
+                setState(() => _biometric = v);
+                _save(_kBiometric, v);
+              },
+              accent: AppColors.success,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _Section(
+          title: 'Storage & Data',
+          children: [
+            _ToggleTile(
+              icon: Icons.download_outlined,
+              label: 'Auto-Download Materials',
+              subtitle: 'Download session files on Wi-Fi',
+              value: _autoDownload,
+              onChanged: (v) {
+                setState(() => _autoDownload = v);
+                _save(_kAutoDownload, v);
+              },
+              accent: AppColors.warning,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Builder(
+          builder: (context) {
+            final cs = Theme.of(context).colorScheme;
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.6)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ToggleTile(
-                    icon: Icons.dark_mode_outlined,
-                    label: l10n.darkMode,
-                    subtitle: l10n.darkModeDesc,
-                    value: p.darkMode,
-                    onChanged: (v) => p.setDarkMode(v),
-                    accent: AppColors.secondary,
+                  Text(
+                    'ABOUT',
+                    style: AppTextTheme.badgeSm.copyWith(
+                      color: cs.onSurface.withValues(alpha: 0.5),
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  _ToggleTile(
-                    icon: Icons.translate_rounded,
-                    label: l10n.arabicLanguage,
-                    subtitle: l10n.arabicDesc,
-                    value: p.localeCode == 'ar',
-                    onChanged: (v) => p.setArabicEnabled(v),
+                  const SizedBox(height: 8),
+                  const _AboutRow('App Version', '1.0.0 (Build 1)'),
+                  const _AboutRow('Last Updated', 'Jun 2026'),
+                  _AboutRow(
+                    'Privacy Policy',
+                    'View',
+                    isLink: true,
+                    onTap: () => _openUrl('https://eduverse.app/privacy'),
+                  ),
+                  _AboutRow(
+                    'Terms of Service',
+                    'View',
+                    isLink: true,
+                    onTap: () => _openUrl('https://eduverse.app/terms'),
                   ),
                 ],
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          _Section(
-            title: l10n.isRtl ? 'الإشعارات' : 'Notifications',
-            children: [
-              _ToggleTile(
-                icon: Icons.notifications_outlined,
-                label: l10n.isRtl ? 'إشعارات الدفع' : 'Push Notifications',
-                subtitle: l10n.isRtl ? 'كل إشعارات التطبيق' : 'All app notifications',
-                value: _push,
-                onChanged: (v) => setState(() => _push = v),
               ),
-              _ToggleTile(
-                icon: Icons.mail_outline_rounded,
-                label: l10n.isRtl ? 'تنبيهات البريد' : 'Email Alerts',
-                subtitle: l10n.isRtl ? 'تحديثات عبر البريد' : 'Important updates via email',
-                value: _email,
-                onChanged: (v) => setState(() => _email = v),
-              ),
-              _ToggleTile(
-                icon: Icons.event_note_rounded,
-                label: l10n.isRtl ? 'تذكير الجلسات' : 'Session Reminders',
-                subtitle: l10n.isRtl ? 'قبل 30 دقيقة' : '30 min before sessions',
-                value: _sessionReminders,
-                onChanged: (v) => setState(() => _sessionReminders = v),
-                accent: AppColors.success,
-              ),
-              _ToggleTile(
-                icon: Icons.grade_outlined,
-                label: l10n.isRtl ? 'تنبيهات الدرجات' : 'Grade Alerts',
-                subtitle: l10n.isRtl ? 'عند تصحيح الواجبات' : 'When assignments are graded',
-                value: _gradeAlerts,
-                onChanged: (v) => setState(() => _gradeAlerts = v),
-                accent: AppColors.warning,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _Section(
-            title: l10n.isRtl ? 'الأمان' : 'Security',
-            children: [
-              _ToggleTile(
-                icon: Icons.fingerprint_rounded,
-                label: l10n.isRtl ? 'دخول بيومتري' : 'Biometric Login',
-                subtitle: l10n.isRtl ? 'Face ID / بصمة' : 'Face ID / Fingerprint',
-                value: _biometric,
-                onChanged: (v) => setState(() => _biometric = v),
-                accent: AppColors.success,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _Section(
-            title: l10n.isRtl ? 'التخزين والبيانات' : 'Storage & Data',
-            children: [
-              _ToggleTile(
-                icon: Icons.download_outlined,
-                label: l10n.isRtl ? 'تنزيل تلقائي' : 'Auto-Download Materials',
-                subtitle: l10n.isRtl ? 'على الـ Wi‑Fi' : 'Download session files on Wi‑Fi',
-                value: _autoDownload,
-                onChanged: (v) => setState(() => _autoDownload = v),
-                accent: AppColors.warning,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Builder(
-            builder: (context) {
-              final cs = Theme.of(context).colorScheme;
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: cs.outlineVariant.withValues(alpha: 0.6),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.isRtl ? 'حول' : 'ABOUT',
-                      style: AppTextTheme.badgeSm.copyWith(
-                        color: cs.onSurface.withValues(alpha: 0.5),
-                        letterSpacing: 0.8,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _AboutRow(
-                      l10n.isRtl ? 'إصدار التطبيق' : 'App Version',
-                      '1.0.0 (Build 1)',
-                    ),
-                    _AboutRow(
-                      l10n.isRtl ? 'آخر تحديث' : 'Last Updated',
-                      'Apr 2026',
-                    ),
-                    _AboutRow(
-                      l10n.isRtl ? 'سياسة الخصوصية' : 'Privacy Policy',
-                      l10n.isRtl ? 'عرض' : 'View',
-                      isLink: true,
-                      onTap: () {},
-                    ),
-                    _AboutRow(
-                      l10n.isRtl ? 'شروط الاستخدام' : 'Terms of Service',
-                      l10n.isRtl ? 'عرض' : 'View',
-                      isLink: true,
-                      onTap: () {},
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-              side: BorderSide(color: Theme.of(context).colorScheme.outline),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              l10n.isRtl ? 'مسح الذاكرة المؤقتة' : 'Clear Cache & Data',
-              style: AppTextTheme.bodySemibold.copyWith(color: AppColors.error),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton(
+          onPressed: _clearCache,
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(48),
+            side: BorderSide(color: Theme.of(context).colorScheme.outline),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
-        ],
-      ),
+          child: Text(
+            'Clear Cache & Data',
+            style: AppTextTheme.bodySemibold.copyWith(color: AppColors.error),
+          ),
+        ),
+        const SizedBox(height: 100),
+      ],
     );
   }
 }
@@ -221,18 +316,13 @@ class _Section extends StatelessWidget {
           decoration: BoxDecoration(
             color: cs.surface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: cs.outlineVariant.withValues(alpha: 0.6),
-            ),
+            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.6)),
           ),
           child: Column(
             children: [
               for (var i = 0; i < children.length; i++) ...[
                 if (i > 0)
-                  Divider(
-                    height: 1,
-                    color: cs.outlineVariant.withValues(alpha: 0.5),
-                  ),
+                  Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.5)),
                 children[i],
               ],
             ],
@@ -292,10 +382,7 @@ class _ToggleTile extends StatelessWidget {
               ],
             ),
           ),
-          Switch.adaptive(
-            value: value,
-            onChanged: onChanged,
-          ),
+          Switch.adaptive(value: value, onChanged: onChanged),
         ],
       ),
     );
@@ -320,10 +407,7 @@ class _AboutRow extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              k,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            Text(k, style: Theme.of(context).textTheme.bodySmall),
             Text(
               v,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
