@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 
 /// Sliver app bar used at the top of CustomScrollView screens.
 class AppTopBar extends StatelessWidget {
@@ -30,7 +30,7 @@ class AppTopBar extends StatelessWidget {
     return SliverAppBar(
       pinned: pinned,
       floating: floating,
-      backgroundColor: AppColors.background,
+      backgroundColor: context.bg,
       automaticallyImplyLeading: showBack,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -85,7 +85,7 @@ class InlineTopBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.bg,
       elevation: 0,
       scrolledUnderElevation: 0,
       automaticallyImplyLeading: showBack,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 
 class AppStatCard extends StatelessWidget {
   const AppStatCard({
@@ -29,9 +30,9 @@ class AppStatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: context.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderLight),
+          border: Border.all(color: context.borderLight),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -93,9 +94,14 @@ class AppStatCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            Text(value, style: AppTextTheme.statValue),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value, style: AppTextTheme.statValue),
+            ),
             const SizedBox(height: 2),
-            Text(label, style: AppTextTheme.statLabel),
+            Text(label, style: AppTextTheme.statLabel,
+                overflow: TextOverflow.ellipsis, maxLines: 1),
           ],
         ),
       ),

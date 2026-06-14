@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 
 class AppChip extends StatelessWidget {
   const AppChip({
@@ -23,10 +24,10 @@ class AppChip extends StatelessWidget {
         padding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surface,
+          color: selected ? AppColors.primary : context.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? AppColors.primary : context.border,
             width: 1.5,
           ),
         ),

@@ -1,64 +1,106 @@
-/// REST paths — swap [baseUrl] via `--dart-define=API_BASE_URL=...` or update default.
 abstract final class ApiEndpoints {
   ApiEndpoints._();
 
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'https://api.eduverse.example/v1',
-  );
+  static const String baseUrl = 'https://eduverseapi.azurewebsites.net';
 
   // ── Auth ─────────────────────────────────────────────────
-  static const String login              = '/auth/login';
-  static const String register           = '/auth/register';
-  static const String verifyEmail        = '/auth/verify-email';
-  static const String resendVerification = '/auth/resend-verification';
-  static const String logout             = '/auth/logout';
-  static const String refreshToken       = '/auth/refresh';
-  static const String forgotPassword     = '/auth/forgot-password';
-  static const String verifyOtp          = '/auth/verify-otp';
-  static const String resetPassword      = '/auth/reset-password';
+  static const String login          = '/Auth/Login';
+  static const String register       = '/Auth/Register';
+  static const String getProfile     = '/Auth/GetProfile';
+  static const String getUser        = '/Auth/GetUser';
+  static const String updateProfile  = '/Auth/UpdateProfile';
+  static const String changePassword = '/Auth/ChangePassword';
+  static const String forgotPassword = '/Auth/ForgotPassword';
+  static const String verifyCode     = '/Auth/VerifyCode';
+  static const String resetPassword  = '/Auth/ResetPassword';
+  static String sendConfirmationEmail(String email) =>
+      '/Auth/SendConfirmationEmail/$email';
+  static String reviveToken(String token) => '/Auth/ReviveToken/$token';
+  static const String confirmEmail = '/Auth/ConfirmEmail';
 
-  // ── Profile ───────────────────────────────────────────────
-  static const String profile       = '/profile';
-  static const String updateProfile = '/profile';
-  static const String uploadAvatar  = '/profile/avatar';
+  // ── Cloud ─────────────────────────────────────────────────
+  static String cloudAdd(String folder)                        => '/Cloud/Add/$folder';
+  static String cloudGet(String folder, String filename)       => '/Cloud/Get/$folder/$filename';
+  static String cloudDelete(String folder, String filename)    => '/Cloud/Delete/$folder/$filename';
+  static String getProfilePicture(String filename)             => '/Cloud/Get/ProfilePicture/$filename';
+  static String deleteProfilePicture(String filename)          => '/Cloud/Delete/ProfilePicture/$filename';
+  static const String uploadProfilePicture = '/Cloud/Add/ProfilePicture';
 
   // ── Courses ───────────────────────────────────────────────
-  static const String courses = '/courses';
-  static String courseDetail(int id) => '/courses/$id';
+  static const String getAllCourses   = '/Course/GetAll';
+  static const String addRating       = '/Course/AddRating';
+  static String getCourseById(String id)              => '/Course/GetById/$id';
+  static String searchCourses(String query)           => '/Course/search/$query';
+  static String getCoursesByCategory(String catId)   => '/Course/GetByCategory/$catId';
+  static String getAllSessions(String courseId)       => '/Course/GetAllSessions/$courseId';
+  static String getAllAssignments(String courseId)    => '/Course/GetAllAssignments/$courseId';
+  static String getAssignmentsBySession(String sid)  => '/Course/GetAssignmentBySession/$sid';
 
-  // ── Enrollment & payments ─────────────────────────────────
-  static const String enroll         = '/enrollments';
-  static const String paymentHistory = '/payments';
-  static String paymentReceipt(String id) => '/payments/$id/receipt';
+  // ── User ─────────────────────────────────────────────────
+  // Enrollment
+  static const String enrolledCourses    = '/User/enrolledcourses';
+  static const String myEnrolledCourses  = '/User/my-enrolled-courses';
+  static String enroll(String courseId)  => '/User/enroll/$courseId';
+  static String myEnrollment(String courseId) => '/User/my-enrollment/$courseId';
 
-  // ── Learning (student) ────────────────────────────────────
-  static const String myCourses = '/me/courses';
-  static String classroom(int courseId) => '/me/courses/$courseId/classroom';
+  // Payment
+  static const String myPayments = '/User/payments';
+  static String payment(String courseId, String method) =>
+      '/User/payment/$courseId/$method';
 
-  // ── Sessions ──────────────────────────────────────────────
-  static const String sessions = '/sessions';
-  static String sessionDetail(int id) => '/sessions/$id';
+  // Assignments
+  static const String submitAssignment    = '/User/submitassignment';
+  static const String myAssignments       = '/User/my-assignments';
+  static const String mySubmissions       = '/User/my-submissions';
+  static String submitAssignmentById(String id) => '/Assignment/Submit/$id';
+  static String mySubmission(String id)          => '/User/my-submission/$id';
+  static String userSubmissions(String email)    => '/User/usersubmissions/$email';
+  static String assignmentSubmissions(String id) => '/User/assignmentsubmissions/$id';
+  static String submission(String id, String email) => '/User/submission/$id/$email';
 
-  // ── Assignments ───────────────────────────────────────────
-  static const String assignments = '/assignments';
-  static String submitAssignment(int id) => '/assignments/$id/submit';
+  // Progress
+  static const String updateProgress = '/User/updateprogress';
+  static String myCourseProgress(String courseId)    => '/User/my-course-progress/$courseId';
+  static String markSessionCompleted(String sessionId) => '/User/mark-session-completed/$sessionId';
 
-  // ── Attendance ────────────────────────────────────────────
-  static const String attendanceScan = '/attendance/scan';
+  // Certificates
+  static const String myCertificates  = '/User/my-certificates';
+  static const String addCertificate  = '/User/addcertificate';
+  static String generateCertificate(String courseId) => '/Certificate/Generate/$courseId';
+  static String verifyCertificate(String code)       => '/Certificate/Verify/$code';
+  static String userCertificates(String email)       => '/User/usercertificates/$email';
+  static String myCertificate(String courseId)       => '/User/my-certificate/$courseId';
+  static String certificateFile(String courseId, String email) =>
+      '/User/certificatefile/$courseId/$email';
 
-  // ── Certificates ──────────────────────────────────────────
-  static const String certificates = '/certificates';
-  static String certificateDetail(String id) => '/certificates/$id';
+  // Misc
+  static String enrollmentData(String courseId, String email) =>
+      '/User/enrollmentdata/$courseId/$email';
+  static const String myEnrollmentData   = '/User/enrollmentdata';
+  static String enrolledUsers(String courseId) => '/User/enrolledusers/$courseId';
 
   // ── Notifications ─────────────────────────────────────────
-  static const String notifications = '/notifications';
-  static String notificationRead(int id) => '/notifications/$id/read';
+  static const String myNotifications = '/Notification/MyNotifications';
+  static String markNotificationRead(String id) => '/Notification/MarkAsRead/$id';
+
+  // ── Attendance ────────────────────────────────────────────
+  static String markAttendance(String sessionId)    => '/Attendance/Mark/$sessionId';
+  static String sessionAttendance(String sessionId) => '/Attendance/Session/$sessionId';
+  static String createSessionQr(String sessionId)   => '/Attendance/CreateSessionQr/$sessionId';
 
   // ── Instructor ────────────────────────────────────────────
-  static const String instructorStats    = '/instructor/stats';
-  static const String instructorCourses  = '/instructor/courses';
-  static const String instructorSessions = '/instructor/sessions';
-  static const String instructorStudents = '/instructor/students';
-  static const String createCourse       = '/instructor/courses';
+  static const String instructorOverview    = '/Instructor/Overview';
+  static const String instructorSessions    = '/Instructor/Sessions';
+  static const String instructorStudents    = '/Instructor/Students';
+  static const String instructorSubmissions = '/Instructor/Submissions';
+  static String instructorSubmission(String assignmentId, String studentId) =>
+      '/Instructor/Submission/$assignmentId/$studentId';
+  static String gradeSubmission(String assignmentId, String studentId) =>
+      '/Instructor/GradeSubmission/$assignmentId/$studentId';
+
+  // ── Recommendations ───────────────────────────────────────
+  static const String recommendationsForMe      = '/Recommendation/ForMe';
+  static const String recommendationsTrending   = '/Recommendation/Trending';
+  static String recommendationsSimilar(String courseId) =>
+      '/Recommendation/Similar/$courseId';
 }

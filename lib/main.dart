@@ -48,21 +48,19 @@ class _EduVerseAppState extends State<EduVerseApp> {
 
   @override
   Widget build(BuildContext context) {
-    final locale = _prefs.locale;
-
     return MaterialApp.router(
       title: 'EduVerse',
       debugShowCheckedModeBanner: false,
-      locale: locale,
-      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('en'),
+      supportedLocales: const [Locale('en')],
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: AppThemeBuilder.light(locale),
-      darkTheme: AppThemeBuilder.dark(locale),
+      theme: AppThemeBuilder.light(),
+      darkTheme: AppThemeBuilder.dark(),
       themeMode: _prefs.themeMode,
       routerConfig: AppRouter.router,
     );

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:edu_verse/core/theme/app_colors.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 
 class AppCard extends StatelessWidget {
   const AppCard({
@@ -26,9 +26,9 @@ class AppCard extends StatelessWidget {
     return Container(
       margin: margin,
       decoration: BoxDecoration(
-        color: color ?? AppColors.card,
+        color: color ?? context.surface,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: AppColors.borderLight, width: 1),
+        border: Border.all(color: context.borderLight, width: 1),
         boxShadow: elevation > 0
             ? [
                 BoxShadow(

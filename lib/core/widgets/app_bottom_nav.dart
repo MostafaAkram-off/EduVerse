@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
@@ -18,7 +19,7 @@ class AppBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(

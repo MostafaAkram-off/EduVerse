@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/widgets/primary_button.dart';
 
 class EmptyState extends StatelessWidget {
@@ -31,10 +32,10 @@ class EmptyState extends StatelessWidget {
               width: 88,
               height: 88,
               decoration: BoxDecoration(
-                color: AppColors.borderLight,
+                color: context.borderLight,
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: Icon(icon, size: 40, color: AppColors.textTertiary),
+              child: Icon(icon, size: 40, color: context.textTertiary),
             ),
             const SizedBox(height: 20),
             Text(title,

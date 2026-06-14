@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 
 class AppProgressBar extends StatelessWidget {
   const AppProgressBar({
@@ -48,7 +49,7 @@ class AppProgressBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: value.clamp(0.0, 1.0),
             minHeight: height,
-            backgroundColor: AppColors.borderLight,
+            backgroundColor: context.borderLight,
             valueColor: AlwaysStoppedAnimation<Color>(effectiveColor),
           ),
         ),

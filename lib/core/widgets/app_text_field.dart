@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 
 class AppTextField extends StatefulWidget {
   const AppTextField({
@@ -88,7 +89,7 @@ class _AppTextFieldState extends State<AppTextField> {
                   )
                 : widget.suffixIcon,
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: context.surface,
             contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 16),
             enabledBorder: OutlineInputBorder(
