@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/utils/date_formatter.dart';
+import 'package:edu_verse/features/auth/shared/auth_session.dart';
 import 'package:edu_verse/core/widgets/app_badge.dart';
 import 'package:edu_verse/core/widgets/app_stat_card.dart';
 
@@ -11,6 +13,7 @@ import 'package:edu_verse/core/widgets/shimmer_loading.dart';
 import 'package:edu_verse/features/instructor/data/models/session_model.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_cubit.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_state.dart';
+import 'package:edu_verse/student/features/notifications/ui/screens/notifications_screen.dart';
 
 class InstructorHomeScreen extends StatelessWidget {
   const InstructorHomeScreen({super.key});
@@ -20,7 +23,7 @@ class InstructorHomeScreen extends StatelessWidget {
     return BlocBuilder<InstructorCubit, InstructorState>(
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bg,
           body: switch (state) {
             InstructorLoading() || InstructorInitial() => _LoadingSkeleton(),
             InstructorLoaded() =>
@@ -53,7 +56,7 @@ class _HomeBody extends StatelessWidget {
         SliverAppBar(
           pinned: true,
           expandedHeight: 160,
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bg,
           elevation: 0,
           scrolledUnderElevation: 0,
           flexibleSpace: FlexibleSpaceBar(
@@ -194,7 +197,7 @@ class _GradientHeader extends StatelessWidget {
                   style: AppTextTheme.greeting
                       .colored(Colors.white.withValues(alpha: 0.85))),
               const SizedBox(height: 2),
-              Text('Ahmed Hassan',
+              Text(AuthSession.name,
                   style: AppTextTheme.greetingName
                       .colored(Colors.white)
                       .copyWith(fontSize: 20)),
@@ -215,32 +218,39 @@ class _GradientHeader extends StatelessWidget {
 class _NotificationBell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.notifications_outlined,
-              color: Colors.white, size: 22),
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => const NotificationsScreen(),
         ),
-        Positioned(
-          top: 6,
-          right: 6,
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: AppColors.warning,
-              shape: BoxShape.circle,
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.notifications_outlined,
+                color: Colors.white, size: 22),
+          ),
+          Positioned(
+            top: 6,
+            right: 6,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: AppColors.warning,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -293,9 +303,9 @@ class _SessionCard extends StatelessWidget {
       width: 220,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: context.borderLight),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -319,7 +329,7 @@ class _SessionCard extends StatelessWidget {
                     ? Icons.videocam_rounded
                     : Icons.location_on_rounded,
                 size: 16,
-                color: AppColors.textTertiary,
+                color: context.textTertiary,
               ),
             ],
           ),
@@ -331,8 +341,8 @@ class _SessionCard extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.access_time_rounded,
-                  size: 13, color: AppColors.textTertiary),
+              Icon(Icons.access_time_rounded,
+                  size: 13, color: context.textTertiary),
               const SizedBox(width: 4),
               Text(
                 DateFormatter.formatTimeRange(
@@ -344,8 +354,8 @@ class _SessionCard extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.people_outline_rounded,
-                  size: 13, color: AppColors.textTertiary),
+              Icon(Icons.people_outline_rounded,
+                  size: 13, color: context.textTertiary),
               const SizedBox(width: 4),
               Text('${session.studentsEnrolled} students',
                   style: AppTextTheme.labelSmall),
@@ -369,9 +379,9 @@ class _UpcomingTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: context.borderLight),
       ),
       child: Row(
         children: [
@@ -417,16 +427,16 @@ class _UpcomingTile extends StatelessWidget {
                           ? Icons.videocam_outlined
                           : Icons.location_on_outlined,
                       size: 12,
-                      color: AppColors.textTertiary,
+                      color: context.textTertiary,
                     ),
                     const SizedBox(width: 3),
                     Text(
-                      session.isOnline ? session.location : session.location,
+                      session.location,
                       style: AppTextTheme.labelSmall,
                     ),
                     const SizedBox(width: 8),
                     Icon(Icons.people_outline_rounded,
-                        size: 12, color: AppColors.textTertiary),
+                        size: 12, color: context.textTertiary),
                     const SizedBox(width: 3),
                     Text('${session.studentsEnrolled}',
                         style: AppTextTheme.labelSmall),
@@ -452,7 +462,7 @@ class _LoadingSkeleton extends StatelessWidget {
       slivers: [
         SliverAppBar(
           expandedHeight: 160,
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bg,
           elevation: 0,
           flexibleSpace: FlexibleSpaceBar(
             background: Container(

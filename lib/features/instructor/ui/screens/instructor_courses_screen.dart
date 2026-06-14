@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/widgets/app_badge.dart';
 import 'package:edu_verse/core/widgets/app_chip.dart';
 import 'package:edu_verse/core/widgets/app_progress_bar.dart';
@@ -29,10 +30,10 @@ class _InstructorCoursesScreenState
     return BlocBuilder<InstructorCubit, InstructorState>(
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bg,
           body: switch (state) {
             InstructorLoading() || InstructorInitial() =>
-              _buildSkeleton(),
+              _buildSkeleton(context),
             InstructorLoaded() =>
               _buildBody(context, state),
             InstructorError(:final message) => ErrorState(
@@ -43,7 +44,7 @@ class _InstructorCoursesScreenState
             _ => const SizedBox(),
           },
           floatingActionButton: FloatingActionButton.extended(
-            onPressed: () {/* TODO: navigate to create course */},
+            onPressed: () {},
             backgroundColor: AppColors.primary,
             icon: const Icon(Icons.add_rounded, color: Colors.white),
             label: Text('Add Course',
@@ -58,12 +59,8 @@ class _InstructorCoursesScreenState
   Widget _buildBody(BuildContext context, InstructorLoaded state) {
     final all = state.courses;
     final filtered = switch (_filterIndex) {
-      1 => all
-          .where((c) => c.status == CourseStatus.active)
-          .toList(),
-      2 => all
-          .where((c) => c.status == CourseStatus.draft)
-          .toList(),
+      1 => all.where((c) => c.status == CourseStatus.active).toList(),
+      2 => all.where((c) => c.status == CourseStatus.draft).toList(),
       _ => all,
     };
 
@@ -72,7 +69,7 @@ class _InstructorCoursesScreenState
         // ── App bar ───────────────────────────────────────
         SliverAppBar(
           pinned: true,
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bg,
           elevation: 0,
           scrolledUnderElevation: 0,
           titleSpacing: 20,
@@ -118,8 +115,7 @@ class _InstructorCoursesScreenState
                 ),
               )
             : SliverPadding(
-                padding:
-                    const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                 sliver: SliverGrid(
                   gridDelegate:
                       const SliverGridDelegateWithFixedCrossAxisCount(
@@ -140,11 +136,11 @@ class _InstructorCoursesScreenState
 
   static const _filters = ['All', 'Active', 'Draft'];
 
-  Widget _buildSkeleton() => CustomScrollView(
+  Widget _buildSkeleton(BuildContext context) => CustomScrollView(
         slivers: [
           SliverAppBar(
             pinned: true,
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bg,
             elevation: 0,
             title: Text('My Courses', style: AppTextTheme.screenTitle),
           ),
@@ -169,12 +165,12 @@ class _CourseCard extends StatelessWidget {
     final isActive = course.status == CourseStatus.active;
 
     return GestureDetector(
-      onTap: () {/* TODO: navigate to course detail */},
+      onTap: () {},
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: context.surface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.borderLight),
+          border: Border.all(color: context.borderLight),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -271,16 +267,16 @@ class _CourseCard extends StatelessWidget {
                     // Stats row
                     Row(
                       children: [
-                        const Icon(Icons.people_outline_rounded,
+                        Icon(Icons.people_outline_rounded,
                             size: 12,
-                            color: AppColors.textTertiary),
+                            color: context.textTertiary),
                         const SizedBox(width: 3),
                         Text('${course.studentsCount}',
                             style: AppTextTheme.labelSmall),
                         const SizedBox(width: 8),
-                        const Icon(Icons.layers_outlined,
+                        Icon(Icons.layers_outlined,
                             size: 12,
-                            color: AppColors.textTertiary),
+                            color: context.textTertiary),
                         const SizedBox(width: 3),
                         Text('${course.sessionsCount}',
                             style: AppTextTheme.labelSmall),

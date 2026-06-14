@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/widgets/app_avatar.dart';
 import 'package:edu_verse/core/widgets/error_state.dart';
+import 'package:edu_verse/core/navigation/app_routes.dart';
+import 'package:edu_verse/core/preferences/app_preferences.dart';
+import 'package:edu_verse/features/auth/shared/auth_session.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_cubit.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_state.dart';
+import 'package:edu_verse/student/features/profile/ui/screens/edit_profile_screen.dart';
 
 const _kGradientStart = Color(0xFFF97316);
 const _kGradientEnd   = Color(0xFFEF4444);
@@ -48,11 +54,8 @@ class InstructorProfileScreen extends StatefulWidget {
 
 class _InstructorProfileScreenState
     extends State<InstructorProfileScreen> {
-  // Editable profile fields (local until API is ready)
-  String _name           = 'Ahmed Hassan';
-  String _specialization = 'Mobile & Web Development Instructor';
-  String _email          = 'ahmed.hassan@eduverse.com';
-  String _phone          = '+20 100 123 4567';
+  final String _name           = AuthSession.name;
+  final String _specialization = 'Mobile & Web Development Instructor';
 
   // Notification toggles (local state)
   bool _notifyNewStudent       = true;
@@ -62,36 +65,10 @@ class _InstructorProfileScreenState
 
   // ── Edit profile ──────────────────────────────────────────
   void _showEditProfile() {
-    final nameCtrl  = TextEditingController(text: _name);
-    final specCtrl  = TextEditingController(text: _specialization);
-    final emailCtrl = TextEditingController(text: _email);
-    final phoneCtrl = TextEditingController(text: _phone);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _FormSheet(
-        title: 'Edit Profile',
-        onSave: () {
-          setState(() {
-            _name           = nameCtrl.text.trim().isEmpty ? _name : nameCtrl.text.trim();
-            _specialization = specCtrl.text.trim().isEmpty ? _specialization : specCtrl.text.trim();
-            _email          = emailCtrl.text.trim().isEmpty ? _email : emailCtrl.text.trim();
-            _phone          = phoneCtrl.text.trim().isEmpty ? _phone : phoneCtrl.text.trim();
-          });
-          Navigator.pop(context);
-          _snack('Profile updated successfully');
-        },
-        child: Column(
-          children: [
-            _FormField(label: 'Full Name',       controller: nameCtrl,  icon: Icons.person_outline_rounded),
-            _FormField(label: 'Specialization',  controller: specCtrl,  icon: Icons.work_outline_rounded),
-            _FormField(label: 'Email',           controller: emailCtrl, icon: Icons.mail_outline_rounded,
-                keyboardType: TextInputType.emailAddress),
-            _FormField(label: 'Phone',           controller: phoneCtrl, icon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone),
-          ],
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const EditProfileScreen(
+          gradientColors: [_kGradientStart, _kGradientEnd],
         ),
       ),
     );
@@ -162,8 +139,8 @@ class _InstructorProfileScreenState
         maxChildSize: 0.93,
         minChildSize: 0.4,
         builder: (_, ctrl) => Container(
-          decoration: const BoxDecoration(
-            color: AppColors.background,
+          decoration: BoxDecoration(
+            color: context.bg,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -215,8 +192,8 @@ class _InstructorProfileScreenState
       backgroundColor: Colors.transparent,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setSheet) => Container(
-          decoration: const BoxDecoration(
-            color: AppColors.background,
+          decoration: BoxDecoration(
+            color: context.bg,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: EdgeInsets.only(
@@ -273,7 +250,7 @@ class _InstructorProfileScreenState
                       ),
                       _ToggleTile(
                         icon: Icons.system_update_outlined,
-                        iconColor: AppColors.textTertiary,
+                        iconColor: context.textTertiary,
                         label: 'App Updates',
                         subtitle: 'News and feature announcements',
                         value: _notifyAppUpdates,
@@ -294,104 +271,37 @@ class _InstructorProfileScreenState
   }
 
   // ── App settings ──────────────────────────────────────────
-  void _showSettings() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _SheetHandle(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Settings', style: AppTextTheme.displaySmall),
-                    const SizedBox(height: 20),
-                    _MenuCard(children: [
-                      _MenuTile(
-                        icon: Icons.language_rounded,
-                        iconColor: AppColors.primary,
-                        label: 'Language',
-                        trailing: Text('English',
-                            style: AppTextTheme.labelMedium
-                                .colored(AppColors.textTertiary)),
-                        onTap: () => _snack('Language settings coming soon'),
-                      ),
-                      _MenuTile(
-                        icon: Icons.text_fields_rounded,
-                        iconColor: AppColors.secondary,
-                        label: 'Text Size',
-                        trailing: Text('Default',
-                            style: AppTextTheme.labelMedium
-                                .colored(AppColors.textTertiary)),
-                        onTap: () => _snack('Text size settings coming soon'),
-                      ),
-                      _MenuTile(
-                        icon: Icons.privacy_tip_outlined,
-                        iconColor: AppColors.success,
-                        label: 'Privacy Policy',
-                        onTap: () => _snack('Opening privacy policy…'),
-                      ),
-                      _MenuTile(
-                        icon: Icons.description_outlined,
-                        iconColor: AppColors.warning,
-                        label: 'Terms of Service',
-                        onTap: () => _snack('Opening terms of service…'),
-                        isLast: true,
-                      ),
-                    ]),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: Text(
-                        'EduVerse v1.0.0',
-                        style: AppTextTheme.timestamp,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  void _showSettings() => context.push(AppRoutes.settings);
 
   // ── Sign out ──────────────────────────────────────────────
   void _showSignOut() {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20)),
-        title: Text('Sign Out', style: AppTextTheme.displaySmall),
+        title: Text(
+          'Sign Out',
+          style: AppTextTheme.displaySmall.copyWith(color: ctx.textPrimary),
+        ),
         content: Text(
           'Are you sure you want to sign out?',
-          style: AppTextTheme.bodyMedium
-              .colored(AppColors.textSecondary),
+          style: AppTextTheme.bodyMedium.copyWith(color: ctx.textSecondary),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(ctx),
             child: Text('Cancel',
                 style: AppTextTheme.buttonMedium
-                    .colored(AppColors.textSecondary)),
+                    .copyWith(color: ctx.textSecondary)),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              // TODO: clear auth tokens and navigate to login when API is ready
-              _snack('Signed out');
+              Navigator.pop(ctx);
+              AuthSession.clear();
+              AppPreferences.instance.clearSession().then((_) {
+                if (mounted) context.go(AppRoutes.login);
+              });
             },
             child: Text('Sign Out',
                 style: AppTextTheme.buttonMedium
@@ -421,7 +331,7 @@ class _InstructorProfileScreenState
   Widget build(BuildContext context) {
     return BlocBuilder<InstructorCubit, InstructorState>(
       builder: (context, state) => Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.bg,
         body: switch (state) {
           InstructorError(:final message) => ErrorState(
               message: message,
@@ -677,9 +587,9 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: context.borderLight),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10, offset: const Offset(0, 2))],
       ),
@@ -715,8 +625,10 @@ class _StatCell extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(value,
-                    style: AppTextTheme.statValue.colored(AppColors.textPrimary)),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(value, style: AppTextTheme.statValue),
+                ),
                 Text(label, style: AppTextTheme.statLabel),
               ]),
               const SizedBox(width: 8),
@@ -737,7 +649,7 @@ class _StatCell extends StatelessWidget {
 class _VertDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
-      Container(width: 1, height: 40, color: AppColors.borderLight);
+      Container(width: 1, height: 40, color: context.borderLight);
 }
 
 // ─── Section label ────────────────────────────────────────────
@@ -761,9 +673,9 @@ class _MenuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: context.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderLight),
+          border: Border.all(color: context.borderLight),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 8, offset: const Offset(0, 2))],
         ),
@@ -811,8 +723,8 @@ class _MenuTile extends StatelessWidget {
                 const SizedBox(width: 14),
                 Expanded(child: Text(label, style: AppTextTheme.cardTitle)),
                 if (trailing != null) ...[trailing!, const SizedBox(width: 6)],
-                const Icon(Icons.chevron_right_rounded,
-                    size: 20, color: AppColors.textTertiary),
+                Icon(Icons.chevron_right_rounded,
+                    size: 20, color: context.textTertiary),
               ],
             ),
           ),
@@ -864,7 +776,7 @@ class _SheetHandle extends StatelessWidget {
         child: Container(
           width: 40, height: 4,
           decoration: BoxDecoration(
-            color: AppColors.borderLight,
+            color: context.borderLight,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -888,8 +800,8 @@ class _FormSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.background,
+      decoration: BoxDecoration(
+        color: context.bg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
@@ -937,13 +849,11 @@ class _FormField extends StatefulWidget {
     required this.label,
     required this.controller,
     required this.icon,
-    this.keyboardType,
     this.obscure = false,
   });
   final String label;
   final TextEditingController controller;
   final IconData icon;
-  final TextInputType? keyboardType;
   final bool obscure;
 
   @override
@@ -970,19 +880,18 @@ class _FormFieldState extends State<_FormField> {
           const SizedBox(height: 6),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.border),
             ),
             child: Row(
               children: [
                 const SizedBox(width: 14),
-                Icon(widget.icon, size: 18, color: AppColors.textTertiary),
+                Icon(widget.icon, size: 18, color: context.textTertiary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
                     controller: widget.controller,
-                    keyboardType: widget.keyboardType,
                     obscureText: _hidden,
                     style: AppTextTheme.bodyMedium,
                     decoration: InputDecoration(
@@ -1000,7 +909,7 @@ class _FormFieldState extends State<_FormField> {
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
                       size: 18,
-                      color: AppColors.textTertiary,
+                      color: context.textTertiary,
                     ),
                     onPressed: () => setState(() => _hidden = !_hidden),
                   ),
@@ -1053,7 +962,7 @@ class _ToggleTile extends StatelessWidget {
                 Text(label, style: AppTextTheme.cardTitle),
                 Text(subtitle,
                     style: AppTextTheme.bodySmall
-                        .colored(AppColors.textTertiary)),
+                        .colored(context.textTertiary)),
               ],
             ),
           ),
@@ -1086,9 +995,9 @@ class _ReviewCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: context.borderLight),
       ),
       child: Row(
         children: [

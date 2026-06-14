@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/utils/date_formatter.dart';
 import 'package:edu_verse/core/widgets/app_badge.dart';
 import 'package:edu_verse/core/widgets/empty_state.dart';
@@ -18,7 +19,7 @@ class InstructorSessionsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<InstructorCubit, InstructorState>(
       builder: (context, state) => Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.bg,
         body: switch (state) {
           InstructorLoading() || InstructorInitial() => _Skeleton(),
           InstructorLoaded(:final todaySessions, :final upcomingSessions) =>
@@ -51,15 +52,15 @@ class _Body extends StatelessWidget {
         // ── App bar ───────────────────────────────────────
         SliverAppBar(
           pinned: true,
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bg,
           elevation: 0,
           scrolledUnderElevation: 0,
           titleSpacing: 20,
           title: Text('Sessions', style: AppTextTheme.screenTitle),
           actions: [
             IconButton(
-              icon: const Icon(Icons.calendar_month_rounded,
-                  color: AppColors.textPrimary),
+              icon: Icon(Icons.calendar_month_rounded,
+                  color: context.textPrimary),
               onPressed: () {},
             ),
             const SizedBox(width: 8),
@@ -207,7 +208,7 @@ class _SessionTile extends StatelessWidget {
                       color: color,
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: AppColors.background, width: 2),
+                          color: context.bg, width: 2),
                       boxShadow: [
                         BoxShadow(
                           color: color.withValues(alpha: 0.4),
@@ -221,7 +222,7 @@ class _SessionTile extends StatelessWidget {
                       child: Container(
                         width: 2,
                         margin: const EdgeInsets.symmetric(vertical: 4),
-                        color: AppColors.borderLight,
+                        color: context.borderLight,
                       ),
                     ),
                 ],
@@ -233,9 +234,9 @@ class _SessionTile extends StatelessWidget {
             child: Container(
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: AppColors.card,
+                color: context.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.borderLight),
+                border: Border.all(color: context.borderLight),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.03),
@@ -307,7 +308,7 @@ class _SessionTile extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
+                              gradient: const LinearGradient(
                                 colors: [
                                   AppColors.primary,
                                   AppColors.secondary,
@@ -359,7 +360,7 @@ class _MetaChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: AppColors.textTertiary),
+        Icon(icon, size: 13, color: context.textTertiary),
         const SizedBox(width: 4),
         Text(label, style: AppTextTheme.labelSmall),
       ],
@@ -376,7 +377,7 @@ class _Skeleton extends StatelessWidget {
       slivers: [
         SliverAppBar(
           pinned: true,
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bg,
           elevation: 0,
           title: Text('Sessions', style: AppTextTheme.screenTitle),
         ),

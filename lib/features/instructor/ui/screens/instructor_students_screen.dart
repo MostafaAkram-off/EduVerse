@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/widgets/app_avatar.dart';
 import 'package:edu_verse/core/widgets/app_badge.dart';
 import 'package:edu_verse/core/widgets/app_chip.dart';
@@ -37,7 +38,7 @@ class _InstructorStudentsScreenState
   Widget build(BuildContext context) {
     return BlocBuilder<InstructorCubit, InstructorState>(
       builder: (context, state) => Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.bg,
         body: switch (state) {
           InstructorLoading() || InstructorInitial() => _Skeleton(),
           InstructorLoaded(:final students) =>
@@ -104,7 +105,7 @@ class _Body extends StatelessWidget {
         // ── App bar ───────────────────────────────────────
         SliverAppBar(
           pinned: true,
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bg,
           elevation: 0,
           scrolledUnderElevation: 0,
           titleSpacing: 20,
@@ -126,15 +127,15 @@ class _Body extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: context.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: context.border),
               ),
               child: Row(
                 children: [
                   const SizedBox(width: 14),
-                  const Icon(Icons.search,
-                      size: 18, color: AppColors.textTertiary),
+                  Icon(Icons.search,
+                      size: 18, color: context.textTertiary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
@@ -153,8 +154,8 @@ class _Body extends StatelessWidget {
                   ),
                   if (searchCtrl.text.isNotEmpty)
                     IconButton(
-                      icon: const Icon(Icons.close,
-                          size: 16, color: AppColors.textTertiary),
+                      icon: Icon(Icons.close,
+                          size: 16, color: context.textTertiary),
                       onPressed: () {
                         searchCtrl.clear();
                         onSearch('');
@@ -239,9 +240,9 @@ class _StudentCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: context.borderLight),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -359,7 +360,7 @@ class _Skeleton extends StatelessWidget {
       slivers: [
         SliverAppBar(
           pinned: true,
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bg,
           elevation: 0,
           title: Text('Students', style: AppTextTheme.screenTitle),
         ),

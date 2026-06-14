@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:edu_verse/core/widgets/app_bottom_nav.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_cubit.dart';
+import 'package:edu_verse/features/instructor/ui/screens/instructor_courses_screen.dart';
 import 'package:edu_verse/features/instructor/ui/screens/instructor_home_screen.dart';
 import 'package:edu_verse/features/instructor/ui/screens/instructor_profile_screen.dart';
 import 'package:edu_verse/features/instructor/ui/screens/instructor_sessions_screen.dart';
@@ -27,6 +28,11 @@ class _InstructorMainScreenState extends State<InstructorMainScreen> {
       label: 'Dashboard',
     ),
     AppBottomNavItem(
+      icon: Icons.book_outlined,
+      activeIcon: Icons.book_rounded,
+      label: 'Courses',
+    ),
+    AppBottomNavItem(
       icon: Icons.calendar_today_outlined,
       activeIcon: Icons.calendar_today_rounded,
       label: 'Sessions',
@@ -47,6 +53,7 @@ class _InstructorMainScreenState extends State<InstructorMainScreen> {
   Widget build(BuildContext context) {
     final screens = [
       const InstructorHomeScreen(),
+      const InstructorCoursesScreen(),
       const InstructorSessionsScreen(),
       const InstructorStudentsScreen(),
       InstructorProfileScreen(onNavigateToTab: _switchTab),
