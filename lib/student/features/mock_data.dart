@@ -16,7 +16,7 @@ class MockData {
   // ─────────────────────────────────────────
   static final List<CourseModel> courses = [
     CourseModel(
-      id: 1,
+      id: '1',
       title: 'UI/UX Design Masterclass',
       instructor: 'Sarah Ahmed',
       category: 'Design',
@@ -49,7 +49,7 @@ class MockData {
       ],
     ),
     CourseModel(
-      id: 2,
+      id: '2',
       title: 'Flutter Development',
       instructor: 'Omar Hassan',
       category: 'Development',
@@ -82,7 +82,7 @@ class MockData {
       ],
     ),
     CourseModel(
-      id: 3,
+      id: '3',
       title: 'Data Science with Python',
       instructor: 'Layla Nour',
       category: 'Data',
@@ -113,7 +113,7 @@ class MockData {
       ],
     ),
     CourseModel(
-      id: 4,
+      id: '4',
       title: 'Digital Marketing Pro',
       instructor: 'Karim Ali',
       category: 'Marketing',
@@ -144,7 +144,7 @@ class MockData {
       ],
     ),
     CourseModel(
-      id: 5,
+      id: '5',
       title: 'Business Analytics',
       instructor: 'Nadia Fathi',
       category: 'Business',

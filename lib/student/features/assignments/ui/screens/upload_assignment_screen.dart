@@ -1,22 +1,89 @@
+import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 
 class UploadAssignmentScreen extends StatefulWidget {
-  const UploadAssignmentScreen({super.key});
+  const UploadAssignmentScreen({
+    super.key,
+    required this.assignmentId,
+    required this.title,
+    required this.description,
+    required this.dueDate,
+  });
+
+  final String assignmentId;
+  final String title;
+  final String description;
+  final String dueDate;
 
   @override
-  State<UploadAssignmentScreen> createState() => _UploadAssignmentScreenState();
+  State<UploadAssignmentScreen> createState() =>
+      _UploadAssignmentScreenState();
 }
 
 class _UploadAssignmentScreenState extends State<UploadAssignmentScreen> {
-  bool _uploaded = false;
+  PlatformFile? _pickedFile;
+  bool _submitting = false;
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx'],
+      withData: true,
+    );
+    if (result != null && result.files.isNotEmpty) {
+      setState(() => _pickedFile = result.files.first);
+    }
+  }
+
+  Future<void> _submit() async {
+    final file = _pickedFile;
+    if (file == null) return;
+    final bytes = file.bytes;
+    if (bytes == null) return;
+    setState(() => _submitting = true);
+    try {
+      final Dio dio = GetIt.instance<Dio>();
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: file.name),
+      });
+      await dio.post<dynamic>(
+        ApiEndpoints.submitAssignmentById(widget.assignmentId),
+        data: formData,
+        options: Options(headers: {'Accept': '*/*'}),
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      final msg = e is DioException
+          ? 'Submit failed (${e.response?.statusCode ?? 'no connection'}). Try again.'
+          : 'Failed to submit. Please try again.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+    }
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / 1024).toStringAsFixed(0)} KB';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final hasFile = _pickedFile != null;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.surface,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
@@ -33,12 +100,13 @@ class _UploadAssignmentScreenState extends State<UploadAssignmentScreen> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
+                // Assignment info card
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: context.surface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.borderLight),
+                    border: Border.all(color: context.borderLight),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,127 +114,99 @@ class _UploadAssignmentScreenState extends State<UploadAssignmentScreen> {
                       Text(
                         'ASSIGNMENT',
                         style: AppTextTheme.badgeSm.copyWith(
-                          color: AppColors.textTertiary,
+                          color: context.textTertiary,
                           letterSpacing: 0.8,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'User Research Report',
+                        widget.title,
                         style: AppTextTheme.displaySmall.copyWith(fontSize: 16),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'UI/UX Design Masterclass · Due Apr 18, 2026',
-                        style: AppTextTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppColors.warningLight,
-                          borderRadius: BorderRadius.circular(8),
+                      if (widget.dueDate.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text('Due: ${widget.dueDate}',
+                            style: AppTextTheme.bodySmall),
+                      ],
+                    ],
+                  ),
+                ),
+                if (widget.description.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: context.borderLight),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Instructions',
+                          style:
+                              AppTextTheme.displaySmall.copyWith(fontSize: 14),
                         ),
-                        child: Text(
-                          'Due in a few days',
-                          style: AppTextTheme.badgeSm.copyWith(
-                            color: AppColors.warning,
-                            fontWeight: FontWeight.w600,
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.description,
+                          style: AppTextTheme.bodyMedium.copyWith(
+                            color: context.textSecondary,
+                            height: 1.6,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.borderLight),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Instructions',
-                        style: AppTextTheme.displaySmall.copyWith(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Submit a user research report analyzing 5 user interviews. '
-                        'Include pain points, personas, and recommendations. PDF, max 10MB.',
-                        style: AppTextTheme.bodyMedium
-                            .copyWith(color: AppColors.textSecondary, height: 1.6),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
                 const SizedBox(height: 16),
+                // File picker area
                 GestureDetector(
-                  onTap: () => setState(() => _uploaded = !_uploaded),
+                  onTap: _submitting ? null : _pickFile,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
-                    padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 36, horizontal: 20),
                     decoration: BoxDecoration(
-                      color: _uploaded
-                          ? AppColors.successLight
-                          : AppColors.primaryLight,
+                      color: hasFile
+                          ? AppColors.success.withValues(alpha: 0.12)
+                          : AppColors.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: _uploaded ? AppColors.success : AppColors.primary,
+                        color:
+                            hasFile ? AppColors.success : AppColors.primary,
                         width: 2,
                       ),
                     ),
                     child: Column(
                       children: [
                         Icon(
-                          _uploaded
+                          hasFile
                               ? Icons.check_circle_rounded
                               : Icons.cloud_upload_outlined,
                           size: 44,
-                          color:
-                              _uploaded ? AppColors.success : AppColors.primary,
+                          color: hasFile
+                              ? AppColors.success
+                              : AppColors.primary,
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          _uploaded
-                              ? 'user_research_report.pdf'
-                              : 'Tap to upload file',
+                          hasFile ? _pickedFile!.name : 'Tap to upload file',
                           style: AppTextTheme.bodySemibold,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _uploaded ? '2.4 MB · PDF' : 'PDF, DOC, PPT up to 10MB',
+                          hasFile
+                              ? '${_formatSize(_pickedFile!.size)} · ${(_pickedFile!.extension ?? 'file').toUpperCase()}'
+                              : 'PDF, DOC, PPT up to 10MB',
                           style: AppTextTheme.bodySmall,
                         ),
                       ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Notes (optional)',
-                  style: AppTextTheme.labelLarge,
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: 'Add a note to your instructor…',
-                    hintStyle: AppTextTheme.inputHint,
-                    filled: true,
-                    fillColor: AppColors.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border),
                     ),
                   ),
                 ),
@@ -175,20 +215,27 @@ class _UploadAssignmentScreenState extends State<UploadAssignmentScreen> {
           ),
           Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(top: BorderSide(color: AppColors.borderLight)),
+            decoration: BoxDecoration(
+              color: context.surface,
+              border: Border(top: BorderSide(color: context.borderLight)),
             ),
             child: FilledButton(
-              onPressed: _uploaded ? () => Navigator.of(context).pop() : null,
+              onPressed: (hasFile && !_submitting) ? _submit : null,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
-                disabledBackgroundColor: AppColors.border,
+                disabledBackgroundColor: context.borderLight,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: Text(_uploaded ? 'Submit assignment' : 'Upload file first'),
+              child: _submitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(hasFile ? 'Submit assignment' : 'Upload file first'),
             ),
           ),
         ],

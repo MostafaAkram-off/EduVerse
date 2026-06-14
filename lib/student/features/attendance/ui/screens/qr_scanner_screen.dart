@@ -4,7 +4,10 @@ import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 
 class QrScannerScreen extends StatefulWidget {
-  const QrScannerScreen({super.key});
+  const QrScannerScreen({super.key, this.sessionName, this.sessionTime});
+
+  final String? sessionName;
+  final String? sessionTime;
 
   @override
   State<QrScannerScreen> createState() => _QrScannerScreenState();
@@ -131,37 +134,43 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                Container(
-                  margin: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Session',
-                        style: AppTextTheme.timestamp.copyWith(
-                          color: Colors.white54,
+                if (widget.sessionName != null) ...[
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Session',
+                          style: AppTextTheme.timestamp.copyWith(
+                            color: Colors.white54,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'UI/UX Design – Session 3',
-                        style: AppTextTheme.bodySemibold
-                            .copyWith(color: Colors.white),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Mon Mar 10 · 10:00 AM',
-                        style: AppTextTheme.timestamp.copyWith(
-                          color: Colors.white38,
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.sessionName!,
+                          style: AppTextTheme.bodySemibold
+                              .copyWith(color: Colors.white),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    ],
+                        if (widget.sessionTime != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.sessionTime!,
+                            style: AppTextTheme.timestamp.copyWith(
+                              color: Colors.white38,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
+                const SizedBox(height: 32),
               ],
             ),
           ),

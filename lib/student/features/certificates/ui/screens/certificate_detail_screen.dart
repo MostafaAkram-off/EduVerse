@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:edu_verse/core/preferences/app_preferences.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
-import 'package:edu_verse/student/features/mock_data.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
+import 'certificates_screen.dart';
 
 class CertificateDetailScreen extends StatelessWidget {
   const CertificateDetailScreen({super.key, required this.item});
 
-  final CertificateItem item;
-
-  static const _studentName = 'Ahmed Khalid';
+  final CertItem item;
 
   @override
   Widget build(BuildContext context) {
+    final studentName = AppPreferences.instance.userName.isNotEmpty
+        ? AppPreferences.instance.userName
+        : 'Student';
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.surface,
         surfaceTintColor: Colors.transparent,
         title: Text('Certificate', style: AppTextTheme.displaySmall.copyWith(fontSize: 17)),
         centerTitle: false,
@@ -105,12 +109,11 @@ class CertificateDetailScreen extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         'This certifies that',
-                        style: AppTextTheme.timestamp
-                            .copyWith(color: Colors.white70),
+                        style: AppTextTheme.timestamp.copyWith(color: Colors.white70),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _studentName,
+                        studentName,
                         style: AppTextTheme.displayLarge.copyWith(
                           color: Colors.white,
                           fontSize: 24,
@@ -119,8 +122,7 @@ class CertificateDetailScreen extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         'has successfully completed',
-                        style: AppTextTheme.timestamp
-                            .copyWith(color: Colors.white70),
+                        style: AppTextTheme.timestamp.copyWith(color: Colors.white70),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -135,36 +137,38 @@ class CertificateDetailScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Instructor',
-                                style: AppTextTheme.timestamp
-                                    .copyWith(color: Colors.white60),
-                              ),
-                              Text(
-                                item.instructor,
-                                style: AppTextTheme.bodySemibold
-                                    .copyWith(color: Colors.white),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                'Issue Date',
-                                style: AppTextTheme.timestamp
-                                    .copyWith(color: Colors.white60),
-                              ),
-                              Text(
-                                item.date,
-                                style: AppTextTheme.bodySemibold
-                                    .copyWith(color: Colors.white),
-                              ),
-                            ],
-                          ),
+                          if (item.instructor.isNotEmpty)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Instructor',
+                                  style: AppTextTheme.timestamp
+                                      .copyWith(color: Colors.white60),
+                                ),
+                                Text(
+                                  item.instructor,
+                                  style: AppTextTheme.bodySemibold
+                                      .copyWith(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          if (item.date.isNotEmpty)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Issue Date',
+                                  style: AppTextTheme.timestamp
+                                      .copyWith(color: Colors.white60),
+                                ),
+                                Text(
+                                  item.date,
+                                  style: AppTextTheme.bodySemibold
+                                      .copyWith(color: Colors.white),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ],
@@ -179,7 +183,7 @@ class CertificateDetailScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.successLight,
+              color: AppColors.success.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
             ),
@@ -218,25 +222,29 @@ class CertificateDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.download_rounded, size: 20),
-                  label: const Text('Download PDF'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
+          FilledButton.icon(
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('PDF download coming soon'),
+                behavior: SnackBarBehavior.floating,
               ),
-            ],
+            ),
+            icon: const Icon(Icons.download_rounded, size: 20),
+            label: const Text('Download PDF'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
           ),
           const SizedBox(height: 10),
           OutlinedButton(
-            onPressed: () {},
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('LinkedIn sharing coming soon'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            ),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(48),
               shape: RoundedRectangleBorder(
@@ -255,24 +263,24 @@ class CertificateDetailScreen extends StatelessWidget {
 }
 
 class _InfoCard extends StatelessWidget {
-  final CertificateItem item;
+  final CertItem item;
   const _InfoCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
     final rows = <List<String>>[
-      ['Certificate ID', item.id],
+      if (item.id.isNotEmpty) ['Certificate ID', item.id],
       ['Course', item.title],
-      ['Instructor', item.instructor],
-      ['Issue Date', item.date],
+      if (item.instructor.isNotEmpty) ['Instructor', item.instructor],
+      if (item.date.isNotEmpty) ['Issue Date', item.date],
       ['Validity', 'Lifetime'],
     ];
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: context.borderLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,6 +305,8 @@ class _InfoCard extends StatelessWidget {
                         r[1],
                         style: AppTextTheme.bodySemibold,
                         textAlign: TextAlign.right,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
                       ),
                     ),
                   ],
