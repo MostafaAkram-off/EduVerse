@@ -161,6 +161,18 @@ class AppTheme {
         unselectedLabelStyle: AppTextTheme.labelMedium,
         dividerColor: AppColors.darkBorder,
       ),
+
+      // Dialog — dark surface + adaptive text
+      dialogTheme: _dialogTheme().copyWith(
+        backgroundColor: AppColors.darkSurface,
+        titleTextStyle: AppTextTheme.displaySmall.colored(AppColors.darkText),
+        contentTextStyle: AppTextTheme.bodyMedium.colored(AppColors.darkTextSecondary),
+      ),
+
+      // Bottom sheet — use dark card so text is readable
+      bottomSheetTheme: _bottomSheetTheme().copyWith(
+        backgroundColor: AppColors.darkCard,
+      ),
     );
   }
 }

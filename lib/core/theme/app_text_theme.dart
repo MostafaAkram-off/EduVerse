@@ -4,7 +4,15 @@ import 'app_colors.dart';
 // ============================================================
 // APP TEXT THEME — EduVerse
 // Single source of truth for all typography.
-// Used inside AppTheme and directly in widgets.
+//
+// DARK MODE RULE:
+//   - Do NOT set color: on styles that should follow the theme.
+//   - With color: null, Flutter inherits from DefaultTextStyle
+//     which is driven by Theme.of(context).colorScheme.onSurface.
+//   - Light → onSurface = AppColors.textPrimary (dark)
+//   - Dark  → onSurface = AppColors.darkText     (light)
+//   - Only set explicit color on brand/always-colored styles
+//     (certTitle, link, navActive, price…).
 // ============================================================
 
 class AppTextTheme {
@@ -14,18 +22,16 @@ class AppTextTheme {
   // FONT FAMILY
   // ─────────────────────────────────────────
   static const String fontFamily = 'SF Pro Display';
-  // Fallback order: SF Pro Display → Roboto → system
 
   // ─────────────────────────────────────────
-  // SCALE  (matches the 7-level scale in DS)
+  // DISPLAY / HEADINGS
+  // color: null → inherits onSurface from theme
   // ─────────────────────────────────────────
 
-  // Headings
   static const TextStyle displayLarge = TextStyle(
     fontFamily: fontFamily,
     fontSize: 28,
     fontWeight: FontWeight.w900,
-    color: AppColors.textPrimary,
     letterSpacing: -1.0,
     height: 1.2,
   );
@@ -34,7 +40,6 @@ class AppTextTheme {
     fontFamily: fontFamily,
     fontSize: 22,
     fontWeight: FontWeight.w800,
-    color: AppColors.textPrimary,
     letterSpacing: -0.5,
     height: 1.2,
   );
@@ -43,17 +48,18 @@ class AppTextTheme {
     fontFamily: fontFamily,
     fontSize: 18,
     fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
     letterSpacing: -0.3,
     height: 1.3,
   );
 
-  // Body
+  // ─────────────────────────────────────────
+  // BODY
+  // ─────────────────────────────────────────
+
   static const TextStyle bodyLarge = TextStyle(
     fontFamily: fontFamily,
     fontSize: 16,
     fontWeight: FontWeight.w400,
-    color: AppColors.textPrimary,
     height: 1.6,
   );
 
@@ -61,7 +67,6 @@ class AppTextTheme {
     fontFamily: fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w400,
-    color: AppColors.textPrimary,
     height: 1.5,
   );
 
@@ -69,7 +74,6 @@ class AppTextTheme {
     fontFamily: fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
     height: 1.5,
   );
 
@@ -77,24 +81,26 @@ class AppTextTheme {
     fontFamily: fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
     height: 1.5,
   );
 
+  // bodySmall is secondary — slightly muted but still inherits theme color.
+  // Widgets needing secondary color call .colored(context.textSecondary).
   static const TextStyle bodySmall = TextStyle(
     fontFamily: fontFamily,
     fontSize: 13,
     fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
     height: 1.5,
   );
 
-  // Labels
+  // ─────────────────────────────────────────
+  // LABELS
+  // ─────────────────────────────────────────
+
   static const TextStyle labelLarge = TextStyle(
     fontFamily: fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
     letterSpacing: 0.1,
   );
 
@@ -102,7 +108,6 @@ class AppTextTheme {
     fontFamily: fontFamily,
     fontSize: 12,
     fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
     height: 1.4,
   );
 
@@ -110,21 +115,17 @@ class AppTextTheme {
     fontFamily: fontFamily,
     fontSize: 11,
     fontWeight: FontWeight.w600,
-    color: AppColors.textTertiary,
     letterSpacing: 0.5,
   );
 
   // ─────────────────────────────────────────
-  // SEMANTIC STYLES
-  // Purpose-named — use these in widgets directly.
+  // SCREEN / APPBAR
   // ─────────────────────────────────────────
 
-  // Screen / AppBar
   static const TextStyle screenTitle = TextStyle(
     fontFamily: fontFamily,
     fontSize: 22,
     fontWeight: FontWeight.w800,
-    color: AppColors.textPrimary,
     letterSpacing: -0.3,
   );
 
@@ -132,37 +133,38 @@ class AppTextTheme {
     fontFamily: fontFamily,
     fontSize: 17,
     fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle appBarSubtitle = TextStyle(
     fontFamily: fontFamily,
     fontSize: 12,
     fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
   );
 
-  // Cards
+  // ─────────────────────────────────────────
+  // CARDS
+  // ─────────────────────────────────────────
+
   static const TextStyle cardTitle = TextStyle(
     fontFamily: fontFamily,
     fontSize: 15,
     fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle cardSubtitle = TextStyle(
     fontFamily: fontFamily,
     fontSize: 12,
     fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
   );
 
-  // Stats (big numbers in StatCard)
+  // ─────────────────────────────────────────
+  // STATS
+  // ─────────────────────────────────────────
+
   static const TextStyle statValue = TextStyle(
     fontFamily: fontFamily,
     fontSize: 22,
     fontWeight: FontWeight.w800,
-    color: AppColors.textPrimary,
     height: 1.2,
   );
 
@@ -170,10 +172,12 @@ class AppTextTheme {
     fontFamily: fontFamily,
     fontSize: 12,
     fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
   );
 
-  // Price / Amount
+  // ─────────────────────────────────────────
+  // PRICE — always brand primary color
+  // ─────────────────────────────────────────
+
   static const TextStyle price = TextStyle(
     fontFamily: fontFamily,
     fontSize: 24,
@@ -189,7 +193,10 @@ class AppTextTheme {
     color: AppColors.primary,
   );
 
-  // Buttons
+  // ─────────────────────────────────────────
+  // BUTTONS — no color (set via ButtonStyle)
+  // ─────────────────────────────────────────
+
   static const TextStyle buttonLarge = TextStyle(
     fontFamily: fontFamily,
     fontSize: 16,
@@ -211,31 +218,37 @@ class AppTextTheme {
     letterSpacing: 0.1,
   );
 
-  // Greeting (home screen header)
+  // ─────────────────────────────────────────
+  // GREETING
+  // ─────────────────────────────────────────
+
   static const TextStyle greeting = TextStyle(
     fontFamily: fontFamily,
     fontSize: 13,
     fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
   );
 
   static const TextStyle greetingName = TextStyle(
     fontFamily: fontFamily,
     fontSize: 17,
     fontWeight: FontWeight.w800,
-    color: AppColors.textPrimary,
   );
 
-  // Section headers (uppercase group labels)
+  // ─────────────────────────────────────────
+  // SECTION HEADER (uppercase group labels)
+  // ─────────────────────────────────────────
+
   static const TextStyle sectionHeader = TextStyle(
     fontFamily: fontFamily,
     fontSize: 12,
     fontWeight: FontWeight.w700,
-    color: AppColors.textTertiary,
     letterSpacing: 0.8,
   );
 
-  // Badges
+  // ─────────────────────────────────────────
+  // BADGES — no color, callers provide it
+  // ─────────────────────────────────────────
+
   static const TextStyle badgeSm = TextStyle(
     fontFamily: fontFamily,
     fontSize: 11,
@@ -250,14 +263,16 @@ class AppTextTheme {
     letterSpacing: 0.3,
   );
 
-  // Progress percent
+  // ─────────────────────────────────────────
+  // PROGRESS / GRADE
+  // ─────────────────────────────────────────
+
   static const TextStyle progressValue = TextStyle(
     fontFamily: fontFamily,
     fontSize: 13,
     fontWeight: FontWeight.w700,
   );
 
-  // Grade hero (big score on GradeAssignment)
   static const TextStyle gradeHero = TextStyle(
     fontFamily: fontFamily,
     fontSize: 48,
@@ -265,72 +280,83 @@ class AppTextTheme {
     height: 1.0,
   );
 
-  // Certificate card text (white on gradient)
+  // ─────────────────────────────────────────
+  // CERTIFICATE — always white on gradient
+  // ─────────────────────────────────────────
+
   static const TextStyle certTitle = TextStyle(
     fontFamily: fontFamily,
     fontSize: 18,
     fontWeight: FontWeight.w800,
-    color: AppColors.textOnPrimary,
+    color: AppColors.textOnPrimary,   // intentional: white on gradient bg
   );
 
   static const TextStyle certLabel = TextStyle(
     fontFamily: fontFamily,
     fontSize: 11,
     fontWeight: FontWeight.w600,
-    color: AppColors.textOnPrimary,
+    color: AppColors.textOnPrimary,   // intentional: white on gradient bg
     letterSpacing: 1.5,
   );
 
-  // Bottom nav labels
+  // ─────────────────────────────────────────
+  // BOTTOM NAV
+  // ─────────────────────────────────────────
+
   static const TextStyle navActive = TextStyle(
     fontFamily: fontFamily,
     fontSize: 10,
     fontWeight: FontWeight.w700,
-    color: AppColors.primary,
+    color: AppColors.primary,         // intentional: always brand blue
   );
 
   static const TextStyle navInactive = TextStyle(
     fontFamily: fontFamily,
     fontSize: 10,
     fontWeight: FontWeight.w500,
-    color: AppColors.textTertiary,
   );
 
-  // Input field
+  // ─────────────────────────────────────────
+  // INPUT
+  // ─────────────────────────────────────────
+
   static const TextStyle inputLabel = TextStyle(
     fontFamily: fontFamily,
     fontSize: 13,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle inputHint = TextStyle(
     fontFamily: fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w400,
-    color: AppColors.textTertiary,
   );
 
-  // Timestamps / metadata
+  // ─────────────────────────────────────────
+  // METADATA / TIMESTAMPS
+  // ─────────────────────────────────────────
+
   static const TextStyle timestamp = TextStyle(
     fontFamily: fontFamily,
     fontSize: 11,
     fontWeight: FontWeight.w400,
-    color: AppColors.textTertiary,
   );
 
-  // Inline link
+  // ─────────────────────────────────────────
+  // LINK — always primary color
+  // ─────────────────────────────────────────
+
   static const TextStyle link = TextStyle(
     fontFamily: fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w700,
-    color: AppColors.primary,
+    color: AppColors.primary,         // intentional: always brand blue
   );
 
   // ─────────────────────────────────────────
   // MATERIAL TextTheme MAPPING
-  // Pass this directly to ThemeData.textTheme
   // ─────────────────────────────────────────
+
   static const TextTheme materialTheme = TextTheme(
     displayLarge:   displayLarge,
     displayMedium:  displayMedium,
@@ -341,7 +367,6 @@ class AppTextTheme {
       fontFamily: fontFamily,
       fontSize: 16,
       fontWeight: FontWeight.w700,
-      color: AppColors.textPrimary,
     ),
     bodyLarge:   bodyLarge,
     bodyMedium:  bodyMedium,
@@ -355,11 +380,10 @@ class AppTextTheme {
       fontFamily: fontFamily,
       fontSize: 14,
       fontWeight: FontWeight.w600,
-      color: AppColors.textPrimary,
     ),
   );
 
-  // Dark mode — same scale, light text
+  // Dark mode — same scale, light text via theme's onSurface
   static TextTheme get materialThemeDark => materialTheme.apply(
     bodyColor:    AppColors.darkText,
     displayColor: AppColors.darkText,
@@ -368,8 +392,6 @@ class AppTextTheme {
 
 // ─────────────────────────────────────────
 // EXTENSION — quick TextStyle modifiers
-// Usage: AppTextTheme.cardTitle.colored(AppColors.textOnPrimary)
-//        AppTextTheme.bodyMedium.bold()
 // ─────────────────────────────────────────
 extension TextStyleX on TextStyle {
   TextStyle colored(Color c)   => copyWith(color: c);
