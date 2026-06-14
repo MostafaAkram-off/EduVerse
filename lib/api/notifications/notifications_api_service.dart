@@ -6,9 +6,9 @@ class NotificationsApiService {
 
   final Dio _dio;
 
-  Future<Response<dynamic>> getNotifications({Map<String, dynamic>? query}) =>
-      _dio.get(ApiEndpoints.notifications, queryParameters: query);
+  Future<Response<dynamic>> getMyNotifications() =>
+      _dio.get(ApiEndpoints.myNotifications);
 
-  Future<Response<dynamic>> markRead(int id) =>
-      _dio.patch(ApiEndpoints.notificationRead(id));
+  Future<Response<dynamic>> markAsRead(String id) =>
+      _dio.post(ApiEndpoints.markNotificationRead(id));
 }

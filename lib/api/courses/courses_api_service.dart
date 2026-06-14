@@ -6,9 +6,31 @@ class CoursesApiService {
 
   final Dio _dio;
 
-  Future<Response<dynamic>> getCourses({Map<String, dynamic>? query}) =>
-      _dio.get(ApiEndpoints.courses, queryParameters: query);
+  Future<Response<dynamic>> getAllCourses({Map<String, dynamic>? query}) =>
+      _dio.get(ApiEndpoints.getAllCourses, queryParameters: query);
 
-  Future<Response<dynamic>> getCourseDetail(int id) =>
-      _dio.get(ApiEndpoints.courseDetail(id));
+  Future<Response<dynamic>> getCourseById(String id) =>
+      _dio.get(ApiEndpoints.getCourseById(id));
+
+  Future<Response<dynamic>> getAllSessions(String courseId) =>
+      _dio.get(ApiEndpoints.getAllSessions(courseId));
+
+  Future<Response<dynamic>> getAllAssignments(String courseId) =>
+      _dio.get(ApiEndpoints.getAllAssignments(courseId));
+
+  Future<Response<dynamic>> getAssignmentsBySession(String sessionId) =>
+      _dio.get(ApiEndpoints.getAssignmentsBySession(sessionId));
+
+  Future<Response<dynamic>> searchCourses(String query) =>
+      _dio.get(ApiEndpoints.searchCourses(query));
+
+  Future<Response<dynamic>> getCoursesByCategory(String categoryId) =>
+      _dio.get(ApiEndpoints.getCoursesByCategory(categoryId));
+
+  Future<Response<dynamic>> addRating({
+    required String courseId,
+    required int ratingValue,
+  }) =>
+      _dio.post(ApiEndpoints.addRating,
+          data: {'courseId': courseId, 'ratingValue': ratingValue});
 }

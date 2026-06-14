@@ -6,9 +6,21 @@ class CertificatesApiService {
 
   final Dio _dio;
 
-  Future<Response<dynamic>> getCertificates({Map<String, dynamic>? query}) =>
-      _dio.get(ApiEndpoints.certificates, queryParameters: query);
+  Future<Response<dynamic>> getMyCertificates() =>
+      _dio.get(ApiEndpoints.myCertificates);
 
-  Future<Response<dynamic>> getCertificateDetail(String id) =>
-      _dio.get(ApiEndpoints.certificateDetail(id));
+  Future<Response<dynamic>> generateCertificate(String courseId) =>
+      _dio.post(ApiEndpoints.generateCertificate(courseId));
+
+  Future<Response<dynamic>> verifyCertificate(String code) =>
+      _dio.get(ApiEndpoints.verifyCertificate(code));
+
+  Future<Response<dynamic>> getUserCertificates(String email) =>
+      _dio.get(ApiEndpoints.userCertificates(email));
+
+  Future<Response<dynamic>> getCertificateFile(String courseId, String email) =>
+      _dio.get(ApiEndpoints.certificateFile(courseId, email));
+
+  Future<Response<dynamic>> addCertificate(FormData formData) =>
+      _dio.post(ApiEndpoints.addCertificate, data: formData);
 }

@@ -6,9 +6,6 @@ class SessionsApiService {
 
   final Dio _dio;
 
-  Future<Response<dynamic>> getSessions({Map<String, dynamic>? query}) =>
-      _dio.get(ApiEndpoints.sessions, queryParameters: query);
-
-  Future<Response<dynamic>> getSessionDetail(int id) =>
-      _dio.get(ApiEndpoints.sessionDetail(id));
+  Future<Response<dynamic>> getAllSessions(String courseId) =>
+      _dio.get(ApiEndpoints.getAllSessions(courseId));
 }

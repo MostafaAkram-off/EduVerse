@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:edu_verse/core/constants/api_endpoints.dart';
 
-/// Remote auth calls. Map responses to models in your datasource layer.
 class AuthApiService {
   AuthApiService(this._dio);
 
@@ -10,26 +9,27 @@ class AuthApiService {
   Future<Response<dynamic>> login(Map<String, dynamic> body) =>
       _dio.post(ApiEndpoints.login, data: body);
 
-  Future<Response<dynamic>> register(Map<String, dynamic> body) =>
-      _dio.post(ApiEndpoints.register, data: body);
+  Future<Response<dynamic>> register(FormData formData) =>
+      _dio.post(ApiEndpoints.register, data: formData);
 
-  Future<Response<dynamic>> verifyEmail(Map<String, dynamic> body) =>
-      _dio.post(ApiEndpoints.verifyEmail, data: body);
+  Future<Response<dynamic>> confirmEmail(Map<String, dynamic> body) =>
+      _dio.post(ApiEndpoints.confirmEmail, data: body);
 
-  Future<Response<dynamic>> resendVerificationCode(Map<String, dynamic> body) =>
-      _dio.post(ApiEndpoints.resendVerification, data: body);
+  Future<Response<dynamic>> sendConfirmationEmail(String email) =>
+      _dio.post(ApiEndpoints.sendConfirmationEmail(email));
 
   Future<Response<dynamic>> forgotPassword(Map<String, dynamic> body) =>
       _dio.post(ApiEndpoints.forgotPassword, data: body);
 
-  Future<Response<dynamic>> verifyOtp(Map<String, dynamic> body) =>
-      _dio.post(ApiEndpoints.verifyOtp, data: body);
+  Future<Response<dynamic>> verifyCode(Map<String, dynamic> body) =>
+      _dio.post(ApiEndpoints.verifyCode, data: body);
 
   Future<Response<dynamic>> resetPassword(Map<String, dynamic> body) =>
       _dio.post(ApiEndpoints.resetPassword, data: body);
 
-  Future<Response<dynamic>> logout() => _dio.post(ApiEndpoints.logout);
+  Future<Response<dynamic>> getProfile() =>
+      _dio.get(ApiEndpoints.getProfile);
 
-  Future<Response<dynamic>> refreshToken(Map<String, dynamic> body) =>
-      _dio.post(ApiEndpoints.refreshToken, data: body);
+  Future<Response<dynamic>> reviveToken(String token) =>
+      _dio.post(ApiEndpoints.reviveToken(token));
 }

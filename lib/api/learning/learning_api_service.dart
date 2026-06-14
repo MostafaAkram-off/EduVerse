@@ -1,15 +1,23 @@
 import 'package:dio/dio.dart';
 import 'package:edu_verse/core/constants/api_endpoints.dart';
 
-/// Student "My Learning" / classroom aggregate endpoints.
 class LearningApiService {
   LearningApiService(this._dio);
 
   final Dio _dio;
 
-  Future<Response<dynamic>> getMyCourses({Map<String, dynamic>? query}) =>
-      _dio.get(ApiEndpoints.myCourses, queryParameters: query);
+  Future<Response<dynamic>> getMyEnrolledCourses() =>
+      _dio.get(ApiEndpoints.myEnrolledCourses);
 
-  Future<Response<dynamic>> getClassroom(int courseId) =>
-      _dio.get(ApiEndpoints.classroom(courseId));
+  Future<Response<dynamic>> getMyCourseProgress(String courseId) =>
+      _dio.get(ApiEndpoints.myCourseProgress(courseId));
+
+  Future<Response<dynamic>> markSessionCompleted(String sessionId) =>
+      _dio.post(ApiEndpoints.markSessionCompleted(sessionId));
+
+  Future<Response<dynamic>> getMyAssignments() =>
+      _dio.get(ApiEndpoints.myAssignments);
+
+  Future<Response<dynamic>> getMySubmissions() =>
+      _dio.get(ApiEndpoints.mySubmissions);
 }
