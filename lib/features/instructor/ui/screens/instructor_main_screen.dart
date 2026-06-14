@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:edu_verse/core/widgets/app_bottom_nav.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_cubit.dart';
 import 'package:edu_verse/features/instructor/ui/screens/instructor_courses_screen.dart';
@@ -60,7 +61,7 @@ class _InstructorMainScreenState extends State<InstructorMainScreen> {
     ];
 
     return BlocProvider(
-      create: (_) => InstructorCubit()..loadData(),
+      create: (_) => GetIt.instance<InstructorCubit>()..loadData(),
       child: Scaffold(
         extendBody: true,
         body: IndexedStack(

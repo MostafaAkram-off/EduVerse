@@ -121,7 +121,7 @@ void configureDependencies() {
         ));
 
   // ── Instructor ────────────────────────────────────────────────────────────
-  sl.registerFactory(() => InstructorCubit());
+  sl.registerFactory(() => InstructorCubit(sl()));
 
   // ── Student ───────────────────────────────────────────────────────────────
   sl.registerFactory(() => StudentCubit());
