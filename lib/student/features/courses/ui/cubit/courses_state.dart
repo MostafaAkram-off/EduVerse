@@ -13,6 +13,8 @@ class CoursesLoaded extends CoursesState {
   final String selectedLevel;
   final String searchQuery;
   final List<String> categories;
+  final List<CourseModel>? forYouCourses;
+  final bool isForYouLoading;
 
   CoursesLoaded({
     required this.allCourses,
@@ -21,13 +23,21 @@ class CoursesLoaded extends CoursesState {
     this.selectedLevel = 'All',
     required this.searchQuery,
     required this.categories,
+    this.forYouCourses,
+    this.isForYouLoading = false,
   });
+
+  bool get isForYouActive => selectedCategory == 'For You';
+
+  static const _keep = Object();
 
   CoursesLoaded copyWith({
     List<CourseModel>? filteredCourses,
     String? selectedCategory,
     String? selectedLevel,
     String? searchQuery,
+    Object? forYouCourses = _keep,
+    bool? isForYouLoading,
   }) {
     return CoursesLoaded(
       allCourses: allCourses,
@@ -36,6 +46,10 @@ class CoursesLoaded extends CoursesState {
       selectedLevel: selectedLevel ?? this.selectedLevel,
       searchQuery: searchQuery ?? this.searchQuery,
       categories: categories,
+      forYouCourses: identical(forYouCourses, _keep)
+          ? this.forYouCourses
+          : forYouCourses as List<CourseModel>?,
+      isForYouLoading: isForYouLoading ?? this.isForYouLoading,
     );
   }
 }

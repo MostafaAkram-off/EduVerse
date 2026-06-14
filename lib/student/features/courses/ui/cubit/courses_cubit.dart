@@ -57,6 +57,42 @@ class CoursesCubit extends Cubit<CoursesState> {
     emit(current.copyWith(filteredCourses: filtered, searchQuery: query));
   }
 
+  Future<void> loadForYou() async {
+    final current = state;
+    if (current is! CoursesLoaded) return;
+    // Switch to For You mode; only fetch if not already cached
+    emit(current.copyWith(
+      selectedCategory: 'For You',
+      isForYouLoading: current.forYouCourses == null,
+    ));
+    if (current.forYouCourses != null) return;
+    try {
+      final res = await _dio.get<dynamic>(ApiEndpoints.recommendationsForMe);
+      final raw = res.data;
+      final list = raw is List
+          ? raw
+          : raw is Map
+              ? ((raw['data'] ?? raw['recommendations'] ?? raw['courses'] ?? []) as List)
+              : <dynamic>[];
+      final courses = list
+          .map((e) => CourseModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (state is CoursesLoaded) {
+        emit((state as CoursesLoaded).copyWith(
+          forYouCourses: courses,
+          isForYouLoading: false,
+        ));
+      }
+    } catch (_) {
+      if (state is CoursesLoaded) {
+        emit((state as CoursesLoaded).copyWith(
+          forYouCourses: <CourseModel>[],
+          isForYouLoading: false,
+        ));
+      }
+    }
+  }
+
   List<CourseModel> _applyFilters(
     List<CourseModel> all,
     String category,

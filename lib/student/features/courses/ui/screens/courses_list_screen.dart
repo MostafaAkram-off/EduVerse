@@ -222,53 +222,36 @@ class _CoursesContentState extends State<_CoursesContent> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                // Category filter chips
+                // Category filter chips  (All · For You · categories…)
                 SizedBox(
                   height: MediaQuery.textScalerOf(context).scale(34).clamp(34.0, 52.0),
-                  child: ListView.builder(
+                  child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    itemCount: state.categories.length,
-                    itemBuilder: (context, index) {
-                      final cat = state.categories[index];
-                      final isActive = cat == state.selectedCategory;
-                      return Padding(
-                        padding: EdgeInsets.only(
-                            right: index < state.categories.length - 1
-                                ? 8
-                                : 0),
-                        child: GestureDetector(
-                          onTap: () => cubit.filterByCategory(cat),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? AppColors.primary
-                                  : context.surface,
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: isActive
-                                    ? AppColors.primary
-                                    : context.border,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Text(
-                              cat,
-                              style: AppTextTheme.labelMedium.copyWith(
-                                color: isActive
-                                    ? Colors.white
-                                    : context.textSecondary,
-                                fontWeight: isActive
-                                    ? FontWeight.w600
-                                    : FontWeight.w500,
-                              ),
-                            ),
-                          ),
+                    child: Row(
+                      children: [
+                        // ── All ─────────────────────────────
+                        _CategoryChip(
+                          label: 'All',
+                          isActive: state.selectedCategory == 'All',
+                          onTap: () => cubit.filterByCategory('All'),
                         ),
-                      );
-                    },
+                        const SizedBox(width: 8),
+                        // ── For You ──────────────────────────
+                        _ForYouChip(
+                          isActive: state.isForYouActive,
+                          onTap: cubit.loadForYou,
+                        ),
+                        // ── Dynamic categories ───────────────
+                        for (final cat in state.categories.skip(1)) ...[
+                          const SizedBox(width: 8),
+                          _CategoryChip(
+                            label: cat,
+                            isActive: state.selectedCategory == cat,
+                            onTap: () => cubit.filterByCategory(cat),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -278,45 +261,209 @@ class _CoursesContentState extends State<_CoursesContent> {
           // ── Results count ─────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-            child: Text(
-              '${state.filteredCourses.length} courses found',
-              style: AppTextTheme.bodySmall,
-            ),
+            child: state.isForYouActive
+                ? Row(children: [
+                    const Icon(Icons.auto_awesome_rounded,
+                        size: 14, color: AppColors.primary),
+                    const SizedBox(width: 5),
+                    Text('Recommended for you',
+                        style: AppTextTheme.bodySmall
+                            .copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                  ])
+                : Text(
+                    '${state.filteredCourses.length} courses found',
+                    style: AppTextTheme.bodySmall,
+                  ),
           ),
 
           // ── Course list ───────────────────
           Expanded(
-            child: state.filteredCourses.isEmpty
-                ? _EmptySearch(
-              onClear: () {
-                _searchController.clear();
-                cubit.search('');
-                cubit.filterByCategory('All');
-                cubit.filterByLevel('All');
-              },
-            )
-                : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-              itemCount: state.filteredCourses.length,
-              itemBuilder: (context, index) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: _CourseCard(
-                  course: state.filteredCourses[index],
-                  onTap: () {
-                    Navigator.push(
+            child: state.isForYouActive
+                ? _ForYouList(
+                    state: state,
+                    onTap: (course) => Navigator.push(
                       context,
                       MaterialPageRoute<void>(
-                        builder: (_) => CourseDetailScreen(
-                          course: state.filteredCourses[index],
+                          builder: (_) => CourseDetailScreen(course: course)),
+                    ),
+                  )
+                : state.filteredCourses.isEmpty
+                    ? _EmptySearch(
+                        onClear: () {
+                          _searchController.clear();
+                          cubit.search('');
+                          cubit.filterByCategory('All');
+                          cubit.filterByLevel('All');
+                        },
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                        itemCount: state.filteredCourses.length,
+                        itemBuilder: (context, index) => Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _CourseCard(
+                            course: state.filteredCourses[index],
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => CourseDetailScreen(
+                                    course: state.filteredCourses[index]),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// CHIP WIDGETS
+// ─────────────────────────────────────────────
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.primary : context.surface,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: isActive ? AppColors.primary : context.border,
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTextTheme.labelMedium.copyWith(
+            color: isActive ? Colors.white : context.textSecondary,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ForYouChip extends StatelessWidget {
+  const _ForYouChip({required this.isActive, required this.onTap});
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.primary : AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: isActive ? AppColors.primary : AppColors.primary.withValues(alpha: 0.35),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_awesome_rounded,
+              size: 12,
+              color: isActive ? Colors.white : AppColors.primary,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              'For You',
+              style: AppTextTheme.labelMedium.copyWith(
+                color: isActive ? Colors.white : AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// FOR YOU LIST
+// ─────────────────────────────────────────────
+class _ForYouList extends StatelessWidget {
+  const _ForYouList({required this.state, required this.onTap});
+  final CoursesLoaded state;
+  final void Function(CourseModel) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.isForYouLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.primary,
+          strokeWidth: 2.5,
+        ),
+      );
+    }
+
+    final courses = state.forYouCourses ?? [];
+    if (courses.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Icon(Icons.auto_awesome_rounded,
+                    size: 36, color: AppColors.primary),
+              ),
+              const SizedBox(height: 20),
+              Text('No Recommendations Yet',
+                  style: AppTextTheme.displaySmall),
+              const SizedBox(height: 8),
+              Text(
+                'Enroll in courses to get personalised picks.',
+                style: AppTextTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+      itemCount: courses.length,
+      itemBuilder: (_, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: _CourseCard(
+          course: courses[i],
+          onTap: () => onTap(courses[i]),
+        ),
       ),
     );
   }

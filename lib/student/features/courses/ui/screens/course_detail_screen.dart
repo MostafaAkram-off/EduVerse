@@ -44,7 +44,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -77,6 +77,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                     Tab(text: 'About'),
                     Tab(text: 'Curriculum'),
                     Tab(text: 'Instructor'),
+                    Tab(text: 'Recommended'),
                   ],
                 ),
               ],
@@ -91,6 +92,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 _AboutTab(course: course),
                 _CurriculumTab(course: course),
                 _InstructorTab(course: course),
+                _RecommendedTab(course: course),
               ],
             ),
           ),
@@ -500,6 +502,203 @@ class _InstructorTab extends StatelessWidget {
               .copyWith(color: context.textSecondary, height: 1.7),
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// RECOMMENDED TAB
+// ─────────────────────────────────────────────
+class _RecommendedTab extends StatefulWidget {
+  final CourseModel course;
+  const _RecommendedTab({required this.course});
+
+  @override
+  State<_RecommendedTab> createState() => _RecommendedTabState();
+}
+
+class _RecommendedTabState extends State<_RecommendedTab> {
+  List<CourseModel>? _courses;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final dio = GetIt.instance<Dio>();
+      final res = await dio.get<dynamic>(
+        ApiEndpoints.recommendationsSimilar(widget.course.id),
+      );
+      final raw = res.data;
+      final list = raw is List
+          ? raw
+          : raw is Map
+              ? ((raw['data'] ?? raw['recommendations'] ?? raw['courses'] ?? []) as List)
+              : <dynamic>[];
+      final courses = list
+          .map((e) => CourseModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (mounted) setState(() { _courses = courses; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _error = 'Could not load recommendations'; _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+      );
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.wifi_off_rounded, size: 40, color: context.textTertiary),
+            const SizedBox(height: 12),
+            Text(_error!, style: AppTextTheme.bodySmall.colored(context.textSecondary)),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () {
+                setState(() { _loading = true; _error = null; });
+                _load();
+              },
+              child: Text('Retry', style: AppTextTheme.labelMedium.colored(AppColors.primary)),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_courses!.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80, height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Icon(Icons.school_outlined, size: 36, color: AppColors.primary),
+              ),
+              const SizedBox(height: 20),
+              Text('No Similar Courses', style: AppTextTheme.displaySmall),
+              const SizedBox(height: 8),
+              Text(
+                'We couldn\'t find similar courses at this time.',
+                style: AppTextTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _courses!.length,
+      itemBuilder: (_, i) {
+        final c = _courses![i];
+        return _RecommendedCard(
+          course: c,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => CourseDetailScreen(course: c),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RecommendedCard extends StatelessWidget {
+  const _RecommendedCard({required this.course, required this.onTap});
+  final CourseModel course;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: context.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: context.borderLight),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Thumbnail
+            Container(
+              width: 72, height: 72,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [course.color.withValues(alpha: 0.8), course.color],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Center(
+                child: Icon(Icons.menu_book_rounded, size: 30, color: Colors.white),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(course.title,
+                      style: AppTextTheme.cardTitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 3),
+                  Text('by ${course.instructor}',
+                      style: AppTextTheme.cardSubtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded,
+                          size: 12, color: AppColors.warning),
+                      const SizedBox(width: 3),
+                      Text('${course.rating}',
+                          style: AppTextTheme.bodySmall
+                              .copyWith(fontWeight: FontWeight.w600)),
+                      const Spacer(),
+                      Text('\$${course.price.toInt()}',
+                          style: AppTextTheme.labelMedium
+                              .colored(AppColors.primary)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
