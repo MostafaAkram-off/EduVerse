@@ -44,7 +44,12 @@ class _InstructorCoursesScreenState
             _ => const SizedBox(),
           },
           floatingActionButton: FloatingActionButton.extended(
-            onPressed: () {},
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Course creation coming soon'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            ),
             backgroundColor: AppColors.primary,
             icon: const Icon(Icons.add_rounded, color: Colors.white),
             label: Text('Add Course',
@@ -165,7 +170,7 @@ class _CourseCard extends StatelessWidget {
     final isActive = course.status == CourseStatus.active;
 
     return GestureDetector(
-      onTap: () {},
+      onTap: () => _showCourseDetail(context),
       child: Container(
         decoration: BoxDecoration(
           color: context.surface,
@@ -309,4 +314,123 @@ class _CourseCard extends StatelessWidget {
         'infrastructure'  => Icons.dns_rounded,
         _                 => Icons.school_rounded,
       };
+
+  void _showCourseDetail(BuildContext context) {
+    final isActive = course.status == CourseStatus.active;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: context.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Header gradient strip
+              Container(
+                height: 6,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: course.coverGradient),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(course.category,
+                            style: AppTextTheme.labelSmall
+                                .colored(AppColors.primary)),
+                        const SizedBox(height: 4),
+                        Text(course.title,
+                            style: AppTextTheme.displaySmall),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  AppBadge(
+                    label: course.statusLabel,
+                    type: isActive ? BadgeType.active : BadgeType.draft,
+                  ),
+                ],
+              ),
+              if (course.description.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(course.description,
+                    style: AppTextTheme.bodyMedium
+                        .colored(context.textSecondary)),
+              ],
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _CourseStat(
+                    icon: Icons.people_outline_rounded,
+                    value: '${course.studentsCount}',
+                    label: 'Students',
+                  ),
+                  const SizedBox(width: 24),
+                  _CourseStat(
+                    icon: Icons.layers_outlined,
+                    value: '${course.sessionsCount}',
+                    label: 'Sessions',
+                  ),
+                  if (isActive && course.completionRate > 0) ...[
+                    const SizedBox(width: 24),
+                    _CourseStat(
+                      icon: Icons.verified_rounded,
+                      value:
+                          '${(course.completionRate * 100).toStringAsFixed(0)}%',
+                      label: 'Completion',
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CourseStat extends StatelessWidget {
+  const _CourseStat(
+      {required this.icon, required this.value, required this.label});
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: context.textTertiary),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value, style: AppTextTheme.bodySemibold),
+            Text(label,
+                style: AppTextTheme.labelSmall
+                    .colored(context.textTertiary)),
+          ],
+        ),
+      ],
+    );
+  }
 }

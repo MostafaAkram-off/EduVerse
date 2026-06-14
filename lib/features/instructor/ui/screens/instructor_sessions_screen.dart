@@ -61,7 +61,12 @@ class _Body extends StatelessWidget {
             IconButton(
               icon: Icon(Icons.calendar_month_rounded,
                   color: context.textPrimary),
-              onPressed: () {},
+              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Calendar view coming soon'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              ),
             ),
             const SizedBox(width: 8),
           ],
@@ -148,7 +153,7 @@ class _SectionLabel extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: AppColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text('$count',
@@ -249,7 +254,7 @@ class _SessionTile extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () {},
+                  onTap: () => _showSessionDetail(context, session),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
@@ -342,6 +347,91 @@ class _SessionTile extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showSessionDetail(BuildContext context, SessionModel s) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: context.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(s.courseTitle,
+                        style: AppTextTheme.displaySmall),
+                  ),
+                  AppBadge(
+                    label: s.statusLabel,
+                    type: _badgeType(s.status),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _DetailRow(
+                icon: Icons.access_time_rounded,
+                label: DateFormatter.formatTimeRange(s.startTime, s.endTime),
+              ),
+              _DetailRow(
+                icon: s.isOnline ? Icons.videocam_rounded : Icons.location_on_rounded,
+                label: s.location,
+              ),
+              _DetailRow(
+                icon: Icons.people_outline_rounded,
+                label: '${s.studentsEnrolled} students enrolled',
+              ),
+              _DetailRow(
+                icon: Icons.calendar_today_rounded,
+                label: DateFormatter.formatDayMonth(s.startTime),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              color: context.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: context.primary),
+          ),
+          const SizedBox(width: 12),
+          Text(label, style: AppTextTheme.bodySemibold),
         ],
       ),
     );

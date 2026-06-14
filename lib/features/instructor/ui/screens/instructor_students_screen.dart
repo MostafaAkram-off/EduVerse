@@ -237,7 +237,9 @@ class _StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: () => _showStudentDetail(context),
+      child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: context.surface,
@@ -297,7 +299,7 @@ class _StudentCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
+                    color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -347,6 +349,122 @@ class _StudentCard extends StatelessWidget {
           ),
         ],
       ),
+    ), // Container
+    ); // GestureDetector
+  }
+
+  void _showStudentDetail(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: context.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  AppAvatar(name: student.name, radius: 28),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(student.name, style: AppTextTheme.displaySmall),
+                        const SizedBox(height: 2),
+                        Text(student.email,
+                            style: AppTextTheme.bodySmall
+                                .colored(context.textSecondary)),
+                      ],
+                    ),
+                  ),
+                  AppBadge(label: student.grade, type: _gradeType),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(student.course,
+                    style:
+                        AppTextTheme.labelMedium.colored(AppColors.primary)),
+              ),
+              const SizedBox(height: 20),
+              _StudentStatRow(
+                label: 'Progress',
+                value: '${student.progressPercent}%',
+                progress: student.progressPercent / 100,
+                color: AppColors.primary,
+              ),
+              const SizedBox(height: 12),
+              _StudentStatRow(
+                label: 'Attendance',
+                value: '${student.attendance}%',
+                progress: student.attendance / 100,
+                color: _attendanceColor,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StudentStatRow extends StatelessWidget {
+  const _StudentStatRow({
+    required this.label,
+    required this.value,
+    required this.progress,
+    required this.color,
+  });
+  final String label;
+  final String value;
+  final double progress;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label,
+                style:
+                    AppTextTheme.bodySmall.colored(context.textSecondary)),
+            Text(value,
+                style: AppTextTheme.bodySemibold.colored(color)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 6,
+            backgroundColor: color.withValues(alpha: 0.15),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+      ],
     );
   }
 }

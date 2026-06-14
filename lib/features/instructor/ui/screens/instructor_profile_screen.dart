@@ -157,7 +157,7 @@ class _InstructorProfileScreenState
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.warningLight,
+                        color: AppColors.warning.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text('${_mockReviews.length} pending',
@@ -402,13 +402,13 @@ class _InstructorProfileScreenState
                   icon: Icons.calendar_month_outlined,
                   iconColor: AppColors.warning,
                   label: 'My Sessions',
-                  onTap: () => widget.onNavigateToTab?.call(1),
+                  onTap: () => widget.onNavigateToTab?.call(2),
                 ),
                 _MenuTile(
                   icon: Icons.people_outline_rounded,
                   iconColor: AppColors.warning,
                   label: 'My Students',
-                  onTap: () => widget.onNavigateToTab?.call(2),
+                  onTap: () => widget.onNavigateToTab?.call(3),
                 ),
                 _MenuTile(
                   icon: Icons.star_outline_rounded,
@@ -455,7 +455,7 @@ class _InstructorProfileScreenState
   Widget _badge(String text) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
-          color: AppColors.errorLight,
+          color: AppColors.error.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(text,
@@ -744,9 +744,9 @@ class _SignOutButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         decoration: BoxDecoration(
-          color: AppColors.errorLight,
+          color: AppColors.error.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.error.withValues(alpha: 0.15)),
+          border: Border.all(color: AppColors.error.withValues(alpha: 0.20)),
         ),
         child: InkWell(
           onTap: onTap,
@@ -882,7 +882,7 @@ class _FormFieldState extends State<_FormField> {
             decoration: BoxDecoration(
               color: context.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: context.border),
             ),
             child: Row(
               children: [
@@ -1019,7 +1019,7 @@ class _ReviewCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
+                      color: AppColors.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(review.course,

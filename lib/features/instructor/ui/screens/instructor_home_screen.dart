@@ -390,7 +390,7 @@ class _UpcomingTile extends StatelessWidget {
             width: 52,
             padding: const EdgeInsets.symmetric(vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: AppColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
