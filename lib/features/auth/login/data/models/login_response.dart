@@ -10,12 +10,4 @@ class LoginResponse {
     this.refreshToken,
     required this.user,
   });
-
-  factory LoginResponse.fromJson(Map<String, dynamic> json) {
-    return LoginResponse(
-      token: json['token'] as String? ?? '',
-      refreshToken: json['refresh_token'] as String?,
-      user: UserData.fromJson(json['user'] as Map<String, dynamic>? ?? {}),
-    );
-  }
 }
