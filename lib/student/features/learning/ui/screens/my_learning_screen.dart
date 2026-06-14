@@ -1,11 +1,99 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/student/features/assignments/ui/screens/upload_assignment_screen.dart';
 import 'package:edu_verse/student/features/attendance/ui/screens/qr_scanner_screen.dart';
 import '../../data/models/enrolled_course_model.dart';
 import '../cubit/learning_cubit.dart';
+
+String _fmtDate(String raw) {
+  if (raw.isEmpty) return '';
+  try {
+    final dt = DateTime.parse(raw);
+    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return '${m[dt.month - 1]} ${dt.day}, ${dt.year}';
+  } catch (_) {
+    return raw;
+  }
+}
+
+class _ClassroomSession {
+  final String id;
+  final String title;
+  final double duration;
+  final int sessionNumber;
+  final String date;
+  final String description;
+  final String videoUrl;
+  final String externalLink;
+  final String fileUrl;
+  final String attendanceCode;
+
+  const _ClassroomSession({
+    required this.id,
+    required this.title,
+    required this.duration,
+    required this.sessionNumber,
+    required this.date,
+    required this.description,
+    required this.videoUrl,
+    required this.externalLink,
+    required this.fileUrl,
+    required this.attendanceCode,
+  });
+
+  factory _ClassroomSession.fromJson(Map<String, dynamic> json) =>
+      _ClassroomSession(
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        duration: (json['duration'] as num?)?.toDouble() ?? 0,
+        sessionNumber: json['sessionNumber'] as int? ?? 0,
+        date: json['date'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        videoUrl: (json['videoUrl'] ?? json['link'] ?? json['url']
+                ?? json['recordingUrl'] ?? json['sessionLink'] ?? '')
+            .toString(),
+        externalLink: (json['externalLink'] ?? json['meetingLink'] ?? '')
+            .toString(),
+        fileUrl: json['fileUrl'] as String? ?? '',
+        attendanceCode: json['attendanceCode'] as String? ?? '',
+      );
+
+  bool get hasVideo => videoUrl.isNotEmpty;
+  bool get hasExternalLink => externalLink.isNotEmpty;
+  bool get hasFile => fileUrl.isNotEmpty;
+  bool get hasAnyLink => hasVideo || hasExternalLink;
+}
+
+class _ClassroomAssignment {
+  final String id;
+  final String subject;
+  final String description;
+  final String date;
+
+  const _ClassroomAssignment({
+    required this.id,
+    required this.subject,
+    required this.description,
+    required this.date,
+  });
+
+  factory _ClassroomAssignment.fromJson(Map<String, dynamic> json) =>
+      _ClassroomAssignment(
+        id: json['id'] as String? ?? '',
+        subject: json['subject'] as String? ??
+            json['title'] as String? ??
+            'Assignment',
+        description: json['description'] as String? ?? '',
+        date: json['date'] as String? ?? '',
+      );
+}
 
 class MyLearningScreen extends StatelessWidget {
   const MyLearningScreen({super.key});
@@ -13,7 +101,7 @@ class MyLearningScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => LearningCubit()..loadLearning(),
+      create: (_) => GetIt.instance<LearningCubit>()..loadLearning(),
       child: const _LearningBody(),
     );
   }
@@ -166,7 +254,7 @@ class _Tab extends StatelessWidget {
                 style: AppTextTheme.labelLarge.copyWith(
                   color: isActive
                       ? AppColors.primary
-                      : AppColors.textSecondary,
+                      : context.textSecondary,
                 ),
               ),
               if (count > 0) ...[
@@ -177,7 +265,7 @@ class _Tab extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isActive
                         ? AppColors.primary
-                        : AppColors.borderLight,
+                        : context.borderLight,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
@@ -185,7 +273,7 @@ class _Tab extends StatelessWidget {
                     style: AppTextTheme.badgeSm.copyWith(
                       color: isActive
                           ? Colors.white
-                          : AppColors.textSecondary,
+                          : context.textSecondary,
                       fontSize: 10,
                     ),
                   ),
@@ -216,9 +304,9 @@ class _EnrolledCourseCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderLight),
+          border: Border.all(color: context.borderLight),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -280,8 +368,7 @@ class _EnrolledCourseCard extends StatelessWidget {
                                   value:
                                   course.progressPercent / 100,
                                   minHeight: 6,
-                                  backgroundColor:
-                                  AppColors.borderLight,
+                                  backgroundColor: context.borderLight,
                                   valueColor:
                                   AlwaysStoppedAnimation<Color>(
                                       course.color),
@@ -327,11 +414,51 @@ class _ClassroomScreen extends StatefulWidget {
 class _ClassroomScreenState extends State<_ClassroomScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  List<_ClassroomSession>? _sessions;
+  bool _sessionsLoading = true;
+  List<_ClassroomAssignment>? _assignments;
+  bool _assignmentsLoading = true;
+  final Set<String> _submittedIds = {};
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _loadSessions();
+    _loadAssignments();
+  }
+
+  Future<void> _loadSessions() async {
+    try {
+      final dio = GetIt.instance<Dio>();
+      final response = await dio.get<List<dynamic>>(
+        ApiEndpoints.getAllSessions(widget.enrolled.course.id),
+      );
+      final list = response.data ?? [];
+      final sessions = list
+          .map((e) => _ClassroomSession.fromJson(e as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => a.sessionNumber.compareTo(b.sessionNumber));
+      if (mounted) setState(() { _sessions = sessions; _sessionsLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _sessions = []; _sessionsLoading = false; });
+    }
+  }
+
+  Future<void> _loadAssignments() async {
+    try {
+      final dio = GetIt.instance<Dio>();
+      final response = await dio.get<List<dynamic>>(
+        ApiEndpoints.getAllAssignments(widget.enrolled.course.id),
+      );
+      final list = response.data ?? [];
+      final assignments = list
+          .map((e) => _ClassroomAssignment.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (mounted) setState(() { _assignments = assignments; _assignmentsLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _assignments = []; _assignmentsLoading = false; });
+    }
   }
 
   @override
@@ -431,8 +558,27 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _SessionsTab(enrolled: widget.enrolled),
-                _AssignmentsTab(enrolled: widget.enrolled),
+                _SessionsTab(
+                  sessions: _sessions,
+                  loading: _sessionsLoading,
+                  onRetry: () {
+                    setState(() { _sessions = null; _sessionsLoading = true; });
+                    _loadSessions();
+                  },
+                ),
+                _AssignmentsTab(
+                  assignments: _assignments,
+                  loading: _assignmentsLoading,
+                  submittedIds: _submittedIds,
+                  onRetry: () {
+                    setState(() {
+                      _assignments = null;
+                      _assignmentsLoading = true;
+                    });
+                    _loadAssignments();
+                  },
+                  onSubmitted: (id) => setState(() => _submittedIds.add(id)),
+                ),
                 _ProgressTab(enrolled: widget.enrolled),
               ],
             ),
@@ -447,18 +593,60 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
 // SESSIONS TAB
 // ─────────────────────────────────────────────
 class _SessionsTab extends StatelessWidget {
-  final EnrolledCourseModel enrolled;
-  const _SessionsTab({required this.enrolled});
+  final List<_ClassroomSession>? sessions;
+  final bool loading;
+  final VoidCallback onRetry;
+
+  const _SessionsTab({
+    required this.sessions,
+    required this.loading,
+    required this.onRetry,
+  });
+
+  static void _showSessionDetail(
+      BuildContext context, _ClassroomSession session) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _SessionDetailSheet(session: session),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (sessions == null || sessions!.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.video_library_outlined,
+                  size: 48, color: context.textTertiary),
+              const SizedBox(height: 12),
+              const Text('No sessions available', style: AppTextTheme.bodySmall),
+              const SizedBox(height: 12),
+              TextButton(onPressed: onRetry, child: const Text('Retry')),
+            ],
+          ),
+        ),
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Row(
           children: [
             Text(
-              'All Sessions (${enrolled.sessions.length})',
+              'All Sessions (${sessions!.length})',
               style: AppTextTheme.bodySemibold,
             ),
             const Spacer(),
@@ -466,19 +654,17 @@ class _SessionsTab extends StatelessWidget {
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                    borderRadius: BorderRadius.circular(10)),
               ),
               onPressed: () async {
                 final code = await Navigator.of(context).push<String>(
                   MaterialPageRoute<String>(
-                    builder: (_) => const QrScannerScreen(),
-                  ),
+                      builder: (_) => const QrScannerScreen()),
                 );
                 if (!context.mounted) return;
                 if (code != null && code.isNotEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Attendance code captured')),
+                    const SnackBar(content: Text('Attendance code captured')),
                   );
                 }
               },
@@ -494,71 +680,272 @@ class _SessionsTab extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        ...enrolled.sessions.map((session) {
-          final isLive = session.status == 'live';
-          final isDone = session.status == 'completed';
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderLight),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: isDone
-                        ? AppColors.successLight
-                        : isLive
-                            ? AppColors.errorLight
-                            : AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    isDone
-                        ? Icons.check_circle_rounded
-                        : isLive
-                            ? Icons.play_circle_fill_rounded
-                            : Icons.play_circle_outline_rounded,
-                    size: 22,
-                    color: isDone
-                        ? AppColors.success
-                        : isLive
-                            ? AppColors.error
-                            : AppColors.primary,
+        ...sessions!.map((s) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Material(
+                color: context.surface,
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _showSessionDetail(context, s),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.borderLight),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${s.sessionNumber}',
+                              style: AppTextTheme.bodyBold
+                                  .copyWith(color: AppColors.primary, fontSize: 13),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(s.title, style: AppTextTheme.bodySemibold),
+                              if (s.date.isNotEmpty) ...[
+                                const SizedBox(height: 3),
+                                Row(
+                                  children: [
+                                    Icon(Icons.access_time,
+                                        size: 12, color: context.textTertiary),
+                                    const SizedBox(width: 3),
+                                    Text(_fmtDate(s.date), style: AppTextTheme.timestamp),
+                                  ],
+                                ),
+                              ],
+                              if (s.duration > 0) ...[
+                                const SizedBox(height: 3),
+                                Text('${s.duration.toStringAsFixed(0)} min',
+                                    style: AppTextTheme.timestamp),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (s.hasVideo)
+                          Container(
+                            width: 32,
+                            height: 32,
+                            margin: const EdgeInsets.only(right: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.play_arrow_rounded,
+                                size: 18, color: Colors.white),
+                          )
+                        else
+                          Icon(Icons.chevron_right_rounded,
+                              size: 22, color: context.textTertiary),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(session.title, style: AppTextTheme.bodySemibold),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          const Icon(Icons.access_time,
-                              size: 12, color: AppColors.textTertiary),
-                          const SizedBox(width: 3),
-                          Text(
-                            '${session.date} · ${session.time}',
-                            style: AppTextTheme.timestamp,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      _StatusBadge(status: session.status),
-                    ],
+              ),
+            )),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// SESSION DETAIL SHEET
+// ─────────────────────────────────────────────
+class _SessionDetailSheet extends StatefulWidget {
+  final _ClassroomSession session;
+  const _SessionDetailSheet({required this.session});
+
+  @override
+  State<_SessionDetailSheet> createState() => _SessionDetailSheetState();
+}
+
+class _SessionDetailSheetState extends State<_SessionDetailSheet> {
+  bool _marking = false;
+  bool _marked = false;
+
+  Future<void> _launch(String rawUrl) async {
+    final url = Uri.tryParse(rawUrl);
+    if (url == null) return;
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open link')),
+        );
+      }
+    }
+  }
+
+  Future<void> _markCompleted() async {
+    setState(() => _marking = true);
+    try {
+      final dio = GetIt.instance<Dio>();
+      await dio.post<dynamic>(
+        ApiEndpoints.markSessionCompleted(widget.session.id),
+      );
+      if (mounted) setState(() { _marked = true; _marking = false; });
+    } catch (_) {
+      if (mounted) setState(() => _marking = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.session;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: context.border,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: Center(
+                    child: Text(
+                      '${s.sessionNumber}',
+                      style: AppTextTheme.bodyBold
+                          .copyWith(color: AppColors.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(s.title,
+                      style: AppTextTheme.displaySmall.copyWith(fontSize: 16)),
                 ),
               ],
             ),
-          );
-        }),
+            const SizedBox(height: 16),
+            if (s.date.isNotEmpty) ...[
+              _InfoRow(Icons.calendar_today_rounded, 'Date', _fmtDate(s.date)),
+              const SizedBox(height: 8),
+            ],
+            if (s.duration > 0) ...[
+              _InfoRow(Icons.access_time_rounded, 'Duration',
+                  '${s.duration.toStringAsFixed(0)} min'),
+              const SizedBox(height: 8),
+            ],
+            if (s.description.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(s.description,
+                  style: AppTextTheme.bodyMedium
+                      .copyWith(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
+              const SizedBox(height: 4),
+            ],
+            const SizedBox(height: 16),
+            if (s.hasVideo) ...[
+              FilledButton.icon(
+                onPressed: () => _launch(s.videoUrl),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: const Icon(Icons.play_circle_outline_rounded, size: 20),
+                label: const Text('Watch Session'),
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (s.hasExternalLink) ...[
+              OutlinedButton.icon(
+                onPressed: () => _launch(s.externalLink),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(46),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                label: const Text('External Resources'),
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (_marked)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_rounded,
+                        color: AppColors.success, size: 20),
+                    SizedBox(width: 8),
+                    Text('Session marked as completed',
+                        style: TextStyle(color: AppColors.success)),
+                  ],
+                ),
+              )
+            else
+              OutlinedButton.icon(
+                onPressed: _marking ? null : _markCompleted,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: _marking
+                    ? const SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_rounded, size: 18),
+                label: const Text('Mark as Completed'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _InfoRow(this.icon, this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: context.textTertiary),
+        const SizedBox(width: 8),
+        Text('$label: ', style: AppTextTheme.bodySmall),
+        Text(value, style: AppTextTheme.bodySemibold),
       ],
     );
   }
@@ -568,39 +955,76 @@ class _SessionsTab extends StatelessWidget {
 // ASSIGNMENTS TAB
 // ─────────────────────────────────────────────
 class _AssignmentsTab extends StatelessWidget {
-  final EnrolledCourseModel enrolled;
-  const _AssignmentsTab({required this.enrolled});
+  final List<_ClassroomAssignment>? assignments;
+  final bool loading;
+  final Set<String> submittedIds;
+  final VoidCallback onRetry;
+  final void Function(String id) onSubmitted;
+
+  const _AssignmentsTab({
+    required this.assignments,
+    required this.loading,
+    required this.submittedIds,
+    required this.onRetry,
+    required this.onSubmitted,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (assignments == null || assignments!.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.assignment_outlined,
+                  size: 48, color: context.textTertiary),
+              const SizedBox(height: 12),
+              const Text('No assignments yet', style: AppTextTheme.bodySmall),
+              const SizedBox(height: 12),
+              TextButton(onPressed: onRetry, child: const Text('Retry')),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView(
       padding: const EdgeInsets.all(16),
-      itemCount: enrolled.assignments.length,
-      itemBuilder: (context, index) {
-        final a = enrolled.assignments[index];
-        final isGraded = a.status == 'graded';
-        final canOpenUpload =
-            a.status == 'pending' || a.status == 'submitted';
+      children: assignments!.map((a) {
+        final isSubmitted = submittedIds.contains(a.id);
+        final status = isSubmitted ? 'submitted' : 'pending';
         return Material(
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
-            onTap: canOpenUpload
-                ? () {
-                    Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const UploadAssignmentScreen(),
+            onTap: isSubmitted
+                ? null
+                : () async {
+                    final submitted =
+                        await Navigator.of(context).push<bool>(
+                      MaterialPageRoute<bool>(
+                        builder: (_) => UploadAssignmentScreen(
+                          assignmentId: a.id,
+                          title: a.subject,
+                          description: a.description,
+                          dueDate: a.date,
+                        ),
                       ),
                     );
-                  }
-                : null,
+                    if (submitted == true) onSubmitted(a.id);
+                  },
             child: Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: context.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderLight),
+                border: Border.all(color: context.borderLight),
               ),
               child: Row(
                 children: [
@@ -608,43 +1032,26 @@ class _AssignmentsTab extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(a.title, style: AppTextTheme.cardTitle),
-                        const SizedBox(height: 3),
-                        Text(
-                          'Due: ${a.dueDate} · ${a.maxPoints} pts',
-                          style: AppTextTheme.timestamp,
-                        ),
+                        Text(a.subject, style: AppTextTheme.cardTitle),
+                        if (a.date.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text('Due: ${_fmtDate(a.date)}',
+                              style: AppTextTheme.timestamp),
+                        ],
                         const SizedBox(height: 8),
-                        _StatusBadge(status: a.status),
+                        _StatusBadge(status: status),
                       ],
                     ),
                   ),
-                  if (isGraded && a.grade != null) ...[
-                    Column(
-                      children: [
-                        Text(
-                          '${a.grade}',
-                          style: AppTextTheme.statValue.copyWith(
-                            color: a.grade! >= 90
-                                ? AppColors.success
-                                : a.grade! >= 70
-                                    ? AppColors.warning
-                                    : AppColors.error,
-                          ),
-                        ),
-                        Text(
-                          '/ ${a.maxPoints}',
-                          style: AppTextTheme.timestamp,
-                        ),
-                      ],
-                    ),
-                  ],
+                  if (!isSubmitted)
+                    const Icon(Icons.upload_file_rounded,
+                        size: 20, color: AppColors.primary),
                 ],
               ),
             ),
           ),
         );
-      },
+      }).toList(),
     );
   }
 }
@@ -690,9 +1097,9 @@ class _ProgressTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(vertical: 28),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.borderLight),
+            border: Border.all(color: context.borderLight),
           ),
           child: Column(
             children: [
@@ -706,14 +1113,13 @@ class _ProgressTab extends StatelessWidget {
                   style: AppTextTheme.bodySmall),
               const SizedBox(height: 16),
               Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
                     value: course.progressPercent / 100,
                     minHeight: 10,
-                    backgroundColor: AppColors.borderLight,
+                    backgroundColor: context.borderLight,
                     valueColor: AlwaysStoppedAnimation<Color>(
                         AppColors.primary),
                   ),
@@ -728,9 +1134,9 @@ class _ProgressTab extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderLight),
+              border: Border.all(color: context.borderLight),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -754,9 +1160,9 @@ class _ProgressTab extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
-                    value: item.value / item.total,
+                    value: item.total > 0 ? item.value / item.total : 0.0,
                     minHeight: 7,
-                    backgroundColor: AppColors.borderLight,
+                    backgroundColor: context.borderLight,
                     valueColor:
                     AlwaysStoppedAnimation<Color>(item.color),
                   ),
@@ -793,12 +1199,6 @@ class _StatusBadge extends StatelessWidget {
   final String status;
   const _StatusBadge({required this.status});
 
-  Color get _bg => switch (status) {
-    'graded' || 'completed' => AppColors.successLight,
-    'submitted' || 'live'   => AppColors.primaryLight,
-    _                       => AppColors.warningLight,
-  };
-
   Color get _fg => switch (status) {
     'graded' || 'completed' => AppColors.success,
     'submitted' || 'live'   => AppColors.primary,
@@ -807,11 +1207,12 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bg = _fg.withValues(alpha: context.isDark ? 0.2 : 0.12);
     return Container(
       padding:
       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: _bg,
+        color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -846,8 +1247,8 @@ class _EmptyLearning extends StatelessWidget {
             Container(
               width: 88,
               height: 88,
-              decoration: const BoxDecoration(
-                color: AppColors.primaryLight,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 40, color: AppColors.primary),
@@ -877,7 +1278,7 @@ class _LearningShimmer extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            color: AppColors.surface,
+            color: context.surface,
             padding: const EdgeInsets.all(20),
             child: Column(children: [
               _S(width: 180, height: 22),
@@ -918,7 +1319,7 @@ class _S extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.borderLight,
+        color: context.borderLight,
         borderRadius: BorderRadius.circular(r),
       ),
     );
@@ -945,8 +1346,8 @@ class _LearningErrorView extends StatelessWidget {
             Container(
               width: 80,
               height: 80,
-              decoration: const BoxDecoration(
-                color: AppColors.errorLight,
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.wifi_off_rounded,

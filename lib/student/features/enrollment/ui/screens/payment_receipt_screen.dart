@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/student/features/courses/data/models/course_model.dart';
 
 class PaymentReceiptScreen extends StatelessWidget {
@@ -8,10 +10,29 @@ class PaymentReceiptScreen extends StatelessWidget {
     super.key,
     required this.course,
     required this.totalPaid,
+    this.paymentMethod = 'Credit / Debit Card',
   });
 
   final CourseModel course;
   final double totalPaid;
+  final String paymentMethod;
+
+  String get _receiptId {
+    final hash = (course.id.hashCode ^ DateTime.now().millisecondsSinceEpoch)
+        .abs()
+        .toString()
+        .substring(0, 4);
+    return '#EDU-${DateTime.now().year}-$hash';
+  }
+
+  String get _todayLabel {
+    final now = DateTime.now();
+    const months = [
+      'Jan','Feb','Mar','Apr','May','Jun',
+      'Jul','Aug','Sep','Oct','Nov','Dec',
+    ];
+    return '${months[now.month - 1]} ${now.day}, ${now.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +60,8 @@ class PaymentReceiptScreen extends StatelessWidget {
                     Container(
                       width: 80,
                       height: 80,
-                      decoration: const BoxDecoration(
-                        color: AppColors.successLight,
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.check_rounded,
@@ -74,17 +95,17 @@ class PaymentReceiptScreen extends StatelessWidget {
                       Text(
                         'RECEIPT',
                         style: AppTextTheme.badgeSm.copyWith(
-                          color: AppColors.textTertiary,
+                          color: context.textTertiary,
                           letterSpacing: 0.8,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      _Line('Receipt No.', '#EDU-2026-4821'),
+                      _Line('Receipt No.', _receiptId),
                       _Line('Course', course.title),
                       _Line('Amount Paid', '\$${totalPaid.toStringAsFixed(0)}'),
-                      _Line('Payment Date', 'Apr 11, 2026'),
-                      _Line('Method', 'Credit Card **** 4242'),
+                      _Line('Payment Date', _todayLabel),
+                      _Line('Method', paymentMethod),
                       _Line(
                         'Status',
                         'Confirmed',
@@ -98,7 +119,12 @@ class PaymentReceiptScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('PDF download coming soon'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        ),
                         icon: const Icon(Icons.download_rounded, size: 18),
                         label: const Text('Download PDF'),
                         style: OutlinedButton.styleFrom(
@@ -112,8 +138,23 @@ class PaymentReceiptScreen extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextButton(
-                        onPressed: () {},
-                        child: const Text('Share'),
+                        onPressed: () {
+                          final text =
+                              'EduVerse Receipt\n'
+                              'Course: ${course.title}\n'
+                              'Amount: \$${totalPaid.toStringAsFixed(0)}\n'
+                              'Method: $paymentMethod\n'
+                              'Date: $_todayLabel\n'
+                              'Receipt: $_receiptId';
+                          Clipboard.setData(ClipboardData(text: text));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Receipt copied to clipboard'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        child: const Text('Copy'),
                       ),
                     ),
                   ],
