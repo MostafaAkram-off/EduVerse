@@ -592,34 +592,30 @@ class _SessionDetail extends StatelessWidget {
             const SizedBox(height: 14),
           ],
 
-          // Action buttons
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (session.videoUrl != null && session.videoUrl!.isNotEmpty)
-                _ActionButton(
-                  icon: Icons.play_circle_outline_rounded,
-                  label: 'Watch Video',
-                  color: AppColors.primary,
-                  url: session.videoUrl!,
-                ),
-              if (session.externalLink != null && session.externalLink!.isNotEmpty)
-                _ActionButton(
-                  icon: Icons.open_in_new_rounded,
-                  label: 'Open Link',
-                  color: AppColors.secondary,
-                  url: session.externalLink!,
-                ),
-              if (session.fileUrl.isNotEmpty)
-                _ActionButton(
-                  icon: Icons.attach_file_rounded,
-                  label: 'View Material',
-                  color: AppColors.success,
-                  url: '${ApiEndpoints.baseUrl}/Cloud/Get/SessionMaterial/${session.fileUrl}',
-                ),
-            ],
-          ),
+          // Single smart action button — videoUrl first, then externalLink, then file
+          Builder(builder: (context) {
+            final String? url;
+            final IconData icon;
+            final String label;
+
+            if (session.videoUrl != null && session.videoUrl!.isNotEmpty) {
+              url   = session.videoUrl!;
+              icon  = Icons.play_circle_outline_rounded;
+              label = 'Watch Video';
+            } else if (session.externalLink != null && session.externalLink!.isNotEmpty) {
+              url   = session.externalLink!;
+              icon  = Icons.open_in_new_rounded;
+              label = 'Open Link';
+            } else if (session.fileUrl.isNotEmpty) {
+              url   = '${ApiEndpoints.baseUrl}/Cloud/Get/SessionMaterial/${session.fileUrl}';
+              icon  = Icons.attach_file_rounded;
+              label = 'View Material';
+            } else {
+              return const SizedBox.shrink();
+            }
+
+            return _ActionButton(icon: icon, label: label, url: url, color: AppColors.primary);
+          }),
         ],
       ),
     );
