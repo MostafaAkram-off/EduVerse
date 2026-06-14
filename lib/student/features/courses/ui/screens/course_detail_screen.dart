@@ -1,8 +1,33 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 import 'package:edu_verse/student/features/enrollment/ui/screens/enroll_confirm_screen.dart';
 import '../../data/models/course_model.dart';
+
+class _ApiSession {
+  final String id;
+  final String title;
+  final double duration;
+  final int sessionNumber;
+
+  const _ApiSession({
+    required this.id,
+    required this.title,
+    required this.duration,
+    required this.sessionNumber,
+  });
+
+  factory _ApiSession.fromJson(Map<String, dynamic> json) => _ApiSession(
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        duration: (json['duration'] as num?)?.toDouble() ?? 0,
+        sessionNumber: json['sessionNumber'] as int? ?? 0,
+      );
+}
 
 class CourseDetailScreen extends StatefulWidget {
   final CourseModel course;
@@ -192,15 +217,18 @@ class _MetricsBar extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(m.icon, size: 14, color: m.iconColor),
-                        const SizedBox(width: 3),
-                        Text(m.value,
-                            style: AppTextTheme.statValue
-                                .copyWith(fontSize: 15)),
-                      ],
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(m.icon, size: 14, color: m.iconColor),
+                          const SizedBox(width: 3),
+                          Text(m.value,
+                              style: AppTextTheme.statValue
+                                  .copyWith(fontSize: 15)),
+                        ],
+                      ),
                     ),
                     Text(m.sub,
                         style: AppTextTheme.timestamp
@@ -210,7 +238,7 @@ class _MetricsBar extends StatelessWidget {
               ),
               if (!isLast)
                 Container(
-                    width: 1, height: 32, color: AppColors.borderLight),
+                    width: 1, height: 32, color: context.borderLight),
             ],
           ),
         );
@@ -245,7 +273,7 @@ class _AboutTab extends StatelessWidget {
       children: [
         Text(course.description,
             style: AppTextTheme.bodyMedium
-                .copyWith(color: AppColors.textSecondary, height: 1.7)),
+                .copyWith(color: context.textSecondary, height: 1.7)),
         const SizedBox(height: 24),
         Text("What you'll learn",
             style: AppTextTheme.displaySmall.copyWith(fontSize: 15)),
@@ -281,16 +309,82 @@ class _AboutTab extends StatelessWidget {
 // ─────────────────────────────────────────────
 // CURRICULUM TAB
 // ─────────────────────────────────────────────
-class _CurriculumTab extends StatelessWidget {
+class _CurriculumTab extends StatefulWidget {
   final CourseModel course;
   const _CurriculumTab({required this.course});
 
   @override
+  State<_CurriculumTab> createState() => _CurriculumTabState();
+}
+
+class _CurriculumTabState extends State<_CurriculumTab> {
+  List<_ApiSession>? _sessions;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final dio = GetIt.instance<Dio>();
+      final response = await dio.get<List<dynamic>>(
+        ApiEndpoints.getAllSessions(widget.course.id),
+      );
+      final list = response.data ?? [];
+      final sessions = list
+          .map((e) => _ApiSession.fromJson(e as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => a.sessionNumber.compareTo(b.sessionNumber));
+      if (mounted) setState(() { _sessions = sessions; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _error = 'Could not load sessions'; _loading = false; });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.wifi_off_rounded, size: 40, color: context.textTertiary),
+            const SizedBox(height: 12),
+            Text(_error!, style: AppTextTheme.bodySmall),
+            const SizedBox(height: 12),
+            TextButton(onPressed: () { setState(() { _loading = true; _error = null; }); _load(); },
+                child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+    if (_sessions!.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.video_library_outlined, size: 48, color: context.textTertiary),
+              const SizedBox(height: 12),
+              const Text('No sessions yet', style: AppTextTheme.bodySmall),
+            ],
+          ),
+        ),
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: course.modules.length,
+      itemCount: _sessions!.length,
       itemBuilder: (context, index) {
+        final s = _sessions![index];
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
@@ -307,12 +401,12 @@ class _CurriculumTab extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
+                  color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
                   child: Text(
-                    '${index + 1}',
+                    '${s.sessionNumber}',
                     style: AppTextTheme.bodyBold
                         .copyWith(color: AppColors.primary, fontSize: 13),
                   ),
@@ -323,15 +417,16 @@ class _CurriculumTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(course.modules[index],
-                        style: AppTextTheme.bodySemibold),
-                    const SizedBox(height: 2),
-                    Text('4–6 sessions',
-                        style: AppTextTheme.timestamp),
+                    Text(s.title, style: AppTextTheme.bodySemibold),
+                    if (s.duration > 0) ...[
+                      const SizedBox(height: 2),
+                      Text('${s.duration.toStringAsFixed(0)} min',
+                          style: AppTextTheme.timestamp),
+                    ],
                   ],
                 ),
               ),
-              Icon(Icons.play_circle_outline_rounded,
+              const Icon(Icons.play_circle_outline_rounded,
                   size: 22, color: AppColors.primary),
             ],
           ),
@@ -350,31 +445,27 @@ class _InstructorTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final name = course.instructor.isNotEmpty ? course.instructor : course.title;
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         Row(
           children: [
-            // Avatar
             Container(
               width: 64,
               height: 64,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [
-                    course.color.withValues(alpha: 0.7),
-                    course.color,
-                  ],
+                  colors: [course.color.withValues(alpha: 0.7), course.color],
                 ),
               ),
               child: Center(
                 child: Text(
-                  course.instructor.substring(0, 1),
+                  initial,
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700),
+                      color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700),
                 ),
               ),
             ),
@@ -383,24 +474,18 @@ class _InstructorTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(course.instructor,
-                      style: AppTextTheme.displaySmall
-                          .copyWith(fontSize: 16)),
+                  Text(name,
+                      style: AppTextTheme.displaySmall.copyWith(fontSize: 16)),
                   const SizedBox(height: 3),
-                  Text('Senior Designer · Google',
-                      style: AppTextTheme.bodySmall),
+                  Text('Course Instructor', style: AppTextTheme.bodySmall),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     children: [
                       _SmallBadge(
-                          text: '4.9 ★',
-                          bg: AppColors.warningLight,
+                          text: '${course.rating} ★',
+                          bg: AppColors.warning.withValues(alpha: 0.12),
                           fg: AppColors.warning),
-                      _SmallBadge(
-                          text: '12 courses',
-                          bg: AppColors.borderLight,
-                          fg: AppColors.textSecondary),
                     ],
                   ),
                 ],
@@ -410,10 +495,9 @@ class _InstructorTab extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Text(
-          '10+ years of experience in product design at top tech companies. '
-              'Passionate about teaching and mentoring the next generation of designers.',
+          'Instructor information is not available yet.',
           style: AppTextTheme.bodyMedium
-              .copyWith(color: AppColors.textSecondary, height: 1.7),
+              .copyWith(color: context.textSecondary, height: 1.7),
         ),
       ],
     );

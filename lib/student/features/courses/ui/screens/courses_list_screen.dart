@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
+import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
-import 'package:edu_verse/student/features/mock_data.dart';
 import '../../data/models/course_model.dart';
 import '../cubit/courses_cubit.dart';
 import 'course_detail_screen.dart';
@@ -13,7 +14,7 @@ class CoursesListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => CoursesCubit()..loadCourses(),
+      create: (_) => GetIt.instance<CoursesCubit>()..loadCourses(),
       child: const _CoursesBody(),
     );
   }
@@ -62,6 +63,95 @@ class _CoursesContentState extends State<_CoursesContent> {
     super.dispose();
   }
 
+  void _showFilterSheet(BuildContext context) {
+    final cubit = context.read<CoursesCubit>();
+    final currentLevel = widget.state.selectedLevel;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: ctx.borderLight,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Filter Courses',
+                  style: AppTextTheme.displaySmall.copyWith(color: ctx.textPrimary),
+                ),
+                if (currentLevel != 'All')
+                  TextButton(
+                    onPressed: () {
+                      cubit.filterByLevel('All');
+                      Navigator.of(ctx).pop();
+                    },
+                    child: Text(
+                      'Reset',
+                      style: AppTextTheme.bodySemibold.copyWith(color: AppColors.primary),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Level',
+              style: AppTextTheme.bodySmall.copyWith(color: ctx.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: ['All', 'Beginner', 'Intermediate', 'Advanced'].map((level) {
+                final isSelected = currentLevel == level;
+                return GestureDetector(
+                  onTap: () {
+                    cubit.filterByLevel(level);
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primary : ctx.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : ctx.border,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Text(
+                      level,
+                      style: AppTextTheme.bodySemibold.copyWith(
+                        color: isSelected ? Colors.white : ctx.textPrimary,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<CoursesCubit>();
@@ -83,15 +173,15 @@ class _CoursesContentState extends State<_CoursesContent> {
                 // Search bar
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.background,
+                    color: context.bg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: context.border),
                   ),
                   child: Row(
                     children: [
                       const SizedBox(width: 14),
-                      const Icon(Icons.search,
-                          size: 18, color: AppColors.textTertiary),
+                      Icon(Icons.search,
+                          size: 18, color: context.textTertiary),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
@@ -107,16 +197,26 @@ class _CoursesContentState extends State<_CoursesContent> {
                           ),
                         ),
                       ),
-                      Container(
-                        margin: const EdgeInsets.all(6),
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(8),
+                      GestureDetector(
+                        onTap: () => _showFilterSheet(context),
+                        child: Container(
+                          margin: const EdgeInsets.all(6),
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: state.selectedLevel != 'All'
+                                ? AppColors.primary
+                                : AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.tune_rounded,
+                            size: 16,
+                            color: state.selectedLevel != 'All'
+                                ? Colors.white
+                                : AppColors.primary,
+                          ),
                         ),
-                        child: const Icon(Icons.tune_rounded,
-                            size: 16, color: AppColors.primary),
                       ),
                     ],
                   ),
@@ -127,13 +227,13 @@ class _CoursesContentState extends State<_CoursesContent> {
                   height: MediaQuery.textScalerOf(context).scale(34).clamp(34.0, 52.0),
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: MockData.categories.length,
+                    itemCount: state.categories.length,
                     itemBuilder: (context, index) {
-                      final cat = MockData.categories[index];
+                      final cat = state.categories[index];
                       final isActive = cat == state.selectedCategory;
                       return Padding(
                         padding: EdgeInsets.only(
-                            right: index < MockData.categories.length - 1
+                            right: index < state.categories.length - 1
                                 ? 8
                                 : 0),
                         child: GestureDetector(
@@ -145,12 +245,12 @@ class _CoursesContentState extends State<_CoursesContent> {
                             decoration: BoxDecoration(
                               color: isActive
                                   ? AppColors.primary
-                                  : AppColors.surface,
+                                  : context.surface,
                               borderRadius: BorderRadius.circular(999),
                               border: Border.all(
                                 color: isActive
                                     ? AppColors.primary
-                                    : AppColors.border,
+                                    : context.border,
                                 width: 1.5,
                               ),
                             ),
@@ -159,7 +259,7 @@ class _CoursesContentState extends State<_CoursesContent> {
                               style: AppTextTheme.labelMedium.copyWith(
                                 color: isActive
                                     ? Colors.white
-                                    : AppColors.textSecondary,
+                                    : context.textSecondary,
                                 fontWeight: isActive
                                     ? FontWeight.w600
                                     : FontWeight.w500,
@@ -192,6 +292,7 @@ class _CoursesContentState extends State<_CoursesContent> {
                 _searchController.clear();
                 cubit.search('');
                 cubit.filterByCategory('All');
+                cubit.filterByLevel('All');
               },
             )
                 : ListView.builder(
@@ -204,7 +305,7 @@ class _CoursesContentState extends State<_CoursesContent> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) => CourseDetailScreen(
                           course: state.filteredCourses[index],
                         ),
@@ -236,9 +337,9 @@ class _CourseCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderLight),
+          border: Border.all(color: context.borderLight),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -307,8 +408,8 @@ class _CourseCard extends StatelessWidget {
                           style: AppTextTheme.timestamp),
                       const SizedBox(width: 12),
                       // Duration
-                      const Icon(Icons.access_time,
-                          size: 13, color: AppColors.textTertiary),
+                      Icon(Icons.access_time,
+                          size: 13, color: context.textTertiary),
                       const SizedBox(width: 3),
                       Text(course.duration,
                           style: AppTextTheme.bodySmall),
@@ -370,7 +471,7 @@ class _EmptySearch extends StatelessWidget {
               width: 88,
               height: 88,
               decoration: BoxDecoration(
-                color: AppColors.primaryLight,
+                color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: const Icon(Icons.search_off_rounded,
@@ -409,7 +510,7 @@ class _CoursesShimmer extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            color: AppColors.surface,
+            color: context.surface,
             padding: const EdgeInsets.all(20),
             child: Column(children: [
               _Shimmer(width: 200, height: 22),
@@ -460,7 +561,7 @@ class _Shimmer extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.borderLight,
+        color: context.borderLight,
         borderRadius: BorderRadius.circular(radius),
       ),
     );
@@ -487,8 +588,8 @@ class _CoursesErrorView extends StatelessWidget {
             Container(
               width: 80,
               height: 80,
-              decoration: const BoxDecoration(
-                color: AppColors.errorLight,
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.wifi_off_rounded,

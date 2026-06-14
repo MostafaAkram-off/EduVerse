@@ -1,10 +1,22 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:edu_verse/core/constants/api_endpoints.dart';
+import 'package:edu_verse/core/preferences/app_preferences.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_text_theme.dart';
+import '../../../../../core/theme/theme_ext.dart';
 import 'package:edu_verse/student/features/home/ui/cubit/home_cubit.dart';
 import 'package:edu_verse/student/features/courses/data/models/course_model.dart';
 import 'package:edu_verse/student/features/courses/ui/screens/course_detail_screen.dart';
+
+String _greeting() {
+  final h = DateTime.now().hour;
+  if (h < 12) return 'Good Morning ☀️';
+  if (h < 17) return 'Good Afternoon 🌤️';
+  if (h < 21) return 'Good Evening 🌙';
+  return 'Good Night 🌛';
+}
 
 class StudentHomeScreen extends StatelessWidget {
   const StudentHomeScreen({
@@ -90,29 +102,39 @@ class _HomeContent extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Greeting row
-                  Row(
-                    children: [
-                      const _Avatar(name: 'Ahmed', size: 44),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Good Morning 🌤️',
-                              style: AppTextTheme.greeting,
+                  ListenableBuilder(
+                    listenable: AppPreferences.instance,
+                    builder: (context, _) {
+                      final prefs = AppPreferences.instance;
+                      final photoUrl = prefs.profilePictureFilename.isNotEmpty
+                          ? '${ApiEndpoints.baseUrl}${ApiEndpoints.getProfilePicture(prefs.profilePictureFilename)}'
+                          : null;
+                      return Row(
+                        children: [
+                          _Avatar(
+                            initials: prefs.initials(),
+                            size: 44,
+                            photoUrl: photoUrl,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(_greeting(), style: AppTextTheme.greeting),
+                                Text(
+                                  prefs.userName.isNotEmpty ? prefs.userName : 'Student',
+                                  style: AppTextTheme.greetingName,
+                                ),
+                              ],
                             ),
-                            Text(
-                              'Ahmed Khalid',
-                              style: AppTextTheme.greetingName,
-                            ),
-                          ],
-                        ),
-                      ),
-                      _NotificationButton(
-                        onTap: onOpenNotifications ?? () {},
-                      ),
-                    ],
+                          ),
+                          _NotificationButton(
+                            onTap: onOpenNotifications ?? () {},
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
 
@@ -329,9 +351,9 @@ class _StatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borderLight),
+          border: Border.all(color: context.borderLight),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -380,9 +402,9 @@ class _SessionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: context.borderLight),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -418,8 +440,8 @@ class _SessionCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.access_time,
-                        size: 13, color: AppColors.textTertiary),
+                    Icon(Icons.access_time,
+                        size: 13, color: context.textTertiary),
                     const SizedBox(width: 4),
                     Text(
                       '${session['date']} · ${session['time']}',
@@ -430,8 +452,8 @@ class _SessionCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right,
-              size: 20, color: AppColors.textTertiary),
+          Icon(Icons.chevron_right,
+              size: 20, color: context.textTertiary),
         ],
       ),
     );
@@ -453,9 +475,9 @@ class _RecommendedCard extends StatelessWidget {
       child: Container(
         width: 180,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderLight),
+          border: Border.all(color: context.borderLight),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -584,12 +606,29 @@ class _Badge extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
-  final String name;
+  final String initials;
   final double size;
-  const _Avatar({required this.name, required this.size});
+  final String? photoUrl;
+  const _Avatar({required this.initials, required this.size, this.photoUrl});
 
   @override
   Widget build(BuildContext context) {
+    if (photoUrl != null && photoUrl!.isNotEmpty) {
+      return ClipOval(
+        child: CachedNetworkImage(
+          imageUrl: photoUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorWidget: (_, __, ___) => _fallback(),
+          placeholder: (_, __) => _fallback(),
+        ),
+      );
+    }
+    return _fallback();
+  }
+
+  Widget _fallback() {
     return Container(
       width: size,
       height: size,
@@ -601,7 +640,7 @@ class _Avatar extends StatelessWidget {
       ),
       child: Center(
         child: Text(
-          name.substring(0, 1).toUpperCase(),
+          initials.isNotEmpty ? initials : '?',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w700,
@@ -625,14 +664,14 @@ class _NotificationButton extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: context.bg,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Stack(
           children: [
-            const Center(
+            Center(
               child: Icon(Icons.notifications_outlined,
-                  size: 22, color: AppColors.textPrimary),
+                  size: 22, color: context.textPrimary),
             ),
             Positioned(
               top: 8,
@@ -643,7 +682,7 @@ class _NotificationButton extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.error,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
+                  border: Border.all(color: context.bg, width: 1.5),
                 ),
               ),
             ),
@@ -720,7 +759,7 @@ class _Shimmer extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.borderLight,
+        color: context.borderLight,
         borderRadius: BorderRadius.circular(radius),
       ),
     );
@@ -747,7 +786,7 @@ class _HomeErrorView extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.errorLight,
+                color: AppColors.error.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.wifi_off_rounded,
