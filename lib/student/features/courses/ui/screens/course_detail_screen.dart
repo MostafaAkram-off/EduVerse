@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
@@ -11,21 +12,45 @@ import '../../data/models/course_model.dart';
 class _ApiSession {
   final String id;
   final String title;
-  final double duration;
+  final double duration;   // in hours (e.g. 0.2885 → ~17 min)
   final int sessionNumber;
+  final String description;
+  final String fileUrl;
+  final String? videoUrl;
+  final String? externalLink;
+  final DateTime? date;
 
   const _ApiSession({
     required this.id,
     required this.title,
     required this.duration,
     required this.sessionNumber,
+    required this.description,
+    required this.fileUrl,
+    this.videoUrl,
+    this.externalLink,
+    this.date,
   });
 
+  String get durationLabel {
+    final totalMin = (duration * 60).round();
+    if (totalMin <= 0) return '';
+    if (totalMin < 60) return '${totalMin}m';
+    final h = totalMin ~/ 60;
+    final m = totalMin % 60;
+    return m == 0 ? '${h}h' : '${h}h ${m}m';
+  }
+
   factory _ApiSession.fromJson(Map<String, dynamic> json) => _ApiSession(
-        id: json['id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        duration: (json['duration'] as num?)?.toDouble() ?? 0,
+        id:            json['id'] as String? ?? '',
+        title:         json['title'] as String? ?? '',
+        duration:      (json['duration'] as num?)?.toDouble() ?? 0,
         sessionNumber: json['sessionNumber'] as int? ?? 0,
+        description:   json['description'] as String? ?? '',
+        fileUrl:       json['fileUrl'] as String? ?? '',
+        videoUrl:      json['videoUrl'] as String?,
+        externalLink:  json['externalLink'] as String?,
+        date:          DateTime.tryParse(json['date'] as String? ?? ''),
       );
 }
 
@@ -323,6 +348,7 @@ class _CurriculumTabState extends State<_CurriculumTab> {
   List<_ApiSession>? _sessions;
   bool _loading = true;
   String? _error;
+  String? _expandedId;
 
   @override
   void initState() {
@@ -333,10 +359,15 @@ class _CurriculumTabState extends State<_CurriculumTab> {
   Future<void> _load() async {
     try {
       final dio = GetIt.instance<Dio>();
-      final response = await dio.get<List<dynamic>>(
+      final response = await dio.get<dynamic>(
         ApiEndpoints.getAllSessions(widget.course.id),
       );
-      final list = response.data ?? [];
+      final raw = response.data;
+      final list = raw is List
+          ? raw
+          : raw is Map
+              ? ((raw['data'] ?? raw['sessions'] ?? []) as List)
+              : <dynamic>[];
       final sessions = list
           .map((e) => _ApiSession.fromJson(e as Map<String, dynamic>))
           .toList()
@@ -347,10 +378,15 @@ class _CurriculumTabState extends State<_CurriculumTab> {
     }
   }
 
+  void _toggle(String id) =>
+      setState(() => _expandedId = _expandedId == id ? null : id);
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+      );
     }
     if (_error != null) {
       return Center(
@@ -360,9 +396,11 @@ class _CurriculumTabState extends State<_CurriculumTab> {
             Icon(Icons.wifi_off_rounded, size: 40, color: context.textTertiary),
             const SizedBox(height: 12),
             Text(_error!, style: AppTextTheme.bodySmall),
-            const SizedBox(height: 12),
-            TextButton(onPressed: () { setState(() { _loading = true; _error = null; }); _load(); },
-                child: const Text('Retry')),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () { setState(() { _loading = true; _error = null; }); _load(); },
+              child: Text('Retry', style: AppTextTheme.labelMedium.colored(AppColors.primary)),
+            ),
           ],
         ),
       );
@@ -376,65 +414,300 @@ class _CurriculumTabState extends State<_CurriculumTab> {
             children: [
               Icon(Icons.video_library_outlined, size: 48, color: context.textTertiary),
               const SizedBox(height: 12),
-              const Text('No sessions yet', style: AppTextTheme.bodySmall),
+              Text('No sessions yet',
+                  style: AppTextTheme.bodySmall.colored(context.textSecondary)),
             ],
           ),
         ),
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       itemCount: _sessions!.length,
-      itemBuilder: (context, index) {
-        final s = _sessions![index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+      itemBuilder: (_, i) => _SessionTile(
+        session: _sessions![i],
+        isExpanded: _expandedId == _sessions![i].id,
+        onTap: () => _toggle(_sessions![i].id),
+      ),
+    );
+  }
+}
+
+// ─── Session accordion tile ──────────────────
+class _SessionTile extends StatelessWidget {
+  const _SessionTile({
+    required this.session,
+    required this.isExpanded,
+    required this.onTap,
+  });
+
+  final _ApiSession session;
+  final bool isExpanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasContent = session.description.isNotEmpty ||
+        (session.videoUrl != null && session.videoUrl!.isNotEmpty) ||
+        (session.externalLink != null && session.externalLink!.isNotEmpty) ||
+        session.fileUrl.isNotEmpty ||
+        session.date != null;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: context.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isExpanded
+              ? AppColors.primary.withValues(alpha: 0.40)
+              : context.borderLight,
+          width: isExpanded ? 1.5 : 1,
+        ),
+        boxShadow: [
+          if (isExpanded)
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    '${s.sessionNumber}',
-                    style: AppTextTheme.bodyBold
-                        .copyWith(color: AppColors.primary, fontSize: 13),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: hasContent ? onTap : null,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Header row ─────────────────────────
+                Row(
                   children: [
-                    Text(s.title, style: AppTextTheme.bodySemibold),
-                    if (s.duration > 0) ...[
-                      const SizedBox(height: 2),
-                      Text('${s.duration.toStringAsFixed(0)} min',
-                          style: AppTextTheme.timestamp),
-                    ],
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: isExpanded
+                            ? AppColors.primary
+                            : AppColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${session.sessionNumber}',
+                          style: AppTextTheme.bodyBold.copyWith(
+                            color: isExpanded ? Colors.white : AppColors.primary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(session.title,
+                              style: AppTextTheme.bodySemibold,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                          if (session.durationLabel.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Icon(Icons.access_time_rounded,
+                                    size: 11, color: context.textTertiary),
+                                const SizedBox(width: 3),
+                                Text(session.durationLabel,
+                                    style: AppTextTheme.timestamp),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (hasContent)
+                      AnimatedRotation(
+                        turns: isExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 250),
+                        child: Icon(Icons.keyboard_arrow_down_rounded,
+                            size: 22, color: context.textTertiary),
+                      ),
                   ],
                 ),
-              ),
-              const Icon(Icons.play_circle_outline_rounded,
-                  size: 22, color: AppColors.primary),
+
+                // ── Expandable content ──────────────────
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeInOut,
+                  child: isExpanded
+                      ? _SessionDetail(session: session)
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Session expanded detail ─────────────────
+class _SessionDetail extends StatelessWidget {
+  const _SessionDetail({required this.session});
+  final _ApiSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(height: 1),
+          const SizedBox(height: 14),
+
+          // Date
+          if (session.date != null) ...[
+            _DetailRow(
+              icon: Icons.calendar_today_outlined,
+              label: _formatDate(session.date!),
+            ),
+            const SizedBox(height: 10),
+          ],
+
+          // Description
+          if (session.description.isNotEmpty) ...[
+            Text(session.description,
+                style: AppTextTheme.bodySmall.copyWith(
+                  color: context.textSecondary,
+                  height: 1.6,
+                )),
+            const SizedBox(height: 14),
+          ],
+
+          // Action buttons
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (session.videoUrl != null && session.videoUrl!.isNotEmpty)
+                _ActionButton(
+                  icon: Icons.play_circle_outline_rounded,
+                  label: 'Watch Video',
+                  color: AppColors.primary,
+                  url: session.videoUrl!,
+                ),
+              if (session.externalLink != null && session.externalLink!.isNotEmpty)
+                _ActionButton(
+                  icon: Icons.open_in_new_rounded,
+                  label: 'Open Link',
+                  color: AppColors.secondary,
+                  url: session.externalLink!,
+                ),
+              if (session.fileUrl.isNotEmpty)
+                _ActionButton(
+                  icon: Icons.attach_file_rounded,
+                  label: 'View Material',
+                  color: AppColors.success,
+                  url: '${ApiEndpoints.baseUrl}/Cloud/Get/SessionMaterial/${session.fileUrl}',
+                ),
             ],
           ),
-        );
-      },
+        ],
+      ),
     );
+  }
+
+  String _formatDate(DateTime d) =>
+      '${d.day} ${_months[d.month - 1]} ${d.year}';
+
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 13, color: context.textTertiary),
+        const SizedBox(width: 6),
+        Text(label,
+            style: AppTextTheme.timestamp.copyWith(color: context.textSecondary)),
+      ],
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.url,
+  });
+  final IconData icon;
+  final String label;
+  final Color color;
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _launch(context, url),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+            Text(label,
+                style: AppTextTheme.labelSmall.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launch(BuildContext context, String rawUrl) async {
+    final uri = Uri.tryParse(rawUrl.startsWith('http') ? rawUrl : 'https://$rawUrl');
+    if (uri == null) return;
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Could not open link'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          ),
+        );
+      }
+    }
   }
 }
 
