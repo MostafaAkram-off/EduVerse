@@ -33,12 +33,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     ]);
 
     _player = Player();
-    _controller = VideoController(
-      _player,
-      configuration: const VideoControllerConfiguration(
-        enableHardwareAcceleration: false,
-      ),
-    );
+    _controller = VideoController(_player);
 
     _errorSub = _player.stream.error.listen((err) {
       if (mounted && err.isNotEmpty) setState(() => _error = err);
@@ -50,10 +45,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   Future<void> _setup() async {
     if (_player.platform is NativePlayer) {
       final np = _player.platform as NativePlayer;
-      // Backend doesn't support HTTP range requests → force seekable
+      // Backend doesn't support HTTP range requests → force MPV to play anyway
       await np.setProperty('force-seekable', 'yes');
-      // Emulator doesn't support hardware video decoding → use software
-      await np.setProperty('hwdec', 'no');
     }
     if (!mounted) return;
     await _player.open(
