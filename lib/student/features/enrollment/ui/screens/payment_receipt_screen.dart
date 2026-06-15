@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/student/features/courses/data/models/course_model.dart';
+import 'package:edu_verse/student/features/home/ui/cubit/home_cubit.dart';
+import 'package:edu_verse/student/features/learning/ui/cubit/learning_cubit.dart';
 
 class PaymentReceiptScreen extends StatelessWidget {
   const PaymentReceiptScreen({
@@ -173,7 +176,11 @@ class PaymentReceiptScreen extends StatelessWidget {
               ),
             ),
             child: FilledButton(
-              onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
+              onPressed: () {
+                GetIt.instance<HomeCubit>().loadHome();
+                GetIt.instance<LearningCubit>().loadLearning();
+                Navigator.of(context).popUntil((r) => r.isFirst);
+              },
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
                 shape: RoundedRectangleBorder(
