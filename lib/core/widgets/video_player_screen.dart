@@ -39,7 +39,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       if (mounted && err.isNotEmpty) setState(() => _error = err);
     });
 
-    _setup();
+    // Wait for the Video widget surface to be mounted before opening media,
+    // otherwise the video decodes but frames have nowhere to render (black screen).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _setup());
   }
 
   Future<void> _setup() async {
