@@ -45,11 +45,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Future<void> _setup() async {
-    if (_player.platform is NativePlayer) {
-      final np = _player.platform as NativePlayer;
-      // Backend doesn't support HTTP range requests → force MPV to play anyway
-      await np.setProperty('force-seekable', 'yes');
-    }
     if (!mounted) return;
     await _player.open(
       Media(
