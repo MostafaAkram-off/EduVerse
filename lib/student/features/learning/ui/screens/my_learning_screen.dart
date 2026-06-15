@@ -7,6 +7,7 @@ import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
+import 'package:edu_verse/core/widgets/video_player_screen.dart';
 import 'package:edu_verse/student/features/assignments/ui/screens/upload_assignment_screen.dart';
 import 'package:edu_verse/student/features/attendance/ui/screens/qr_scanner_screen.dart';
 import '../../data/models/enrolled_course_model.dart';
@@ -48,27 +49,59 @@ class _ClassroomSession {
     required this.attendanceCode,
   });
 
-  factory _ClassroomSession.fromJson(Map<String, dynamic> json) =>
-      _ClassroomSession(
-        id: json['id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        duration: (json['duration'] as num?)?.toDouble() ?? 0,
-        sessionNumber: json['sessionNumber'] as int? ?? 0,
-        date: json['date'] as String? ?? '',
-        description: json['description'] as String? ?? '',
-        videoUrl: (json['videoUrl'] ?? json['link'] ?? json['url']
-                ?? json['recordingUrl'] ?? json['sessionLink'] ?? '')
-            .toString(),
-        externalLink: (json['externalLink'] ?? json['meetingLink'] ?? '')
-            .toString(),
-        fileUrl: json['fileUrl'] as String? ?? '',
-        attendanceCode: json['attendanceCode'] as String? ?? '',
-      );
+  factory _ClassroomSession.fromJson(Map<String, dynamic> json) {
+    // Normalise a raw value — strip null-string and blank values
+    String str(dynamic v) {
+      final s = (v ?? '').toString().trim();
+      return (s == 'null') ? '' : s;
+    }
+
+    final videoUrl = str(
+      json['videoUrl'] ??
+      json['video_url'] ??
+      json['videoLink'] ??
+      json['recordingUrl'] ??
+      json['sessionVideoUrl'] ??
+      json['recordUrl'],
+    );
+
+    // External link — prefer explicit field; fall back to generic link/url
+    // only when there is no dedicated video URL so they don't overlap.
+    final rawExternal = str(
+      json['externalLink'] ??
+      json['external_link'] ??
+      json['meetingLink'] ??
+      json['meeting_link'],
+    );
+    final externalLink = rawExternal.isNotEmpty
+        ? rawExternal
+        : (videoUrl.isEmpty
+            ? str(json['link'] ?? json['url'] ?? json['sessionLink'])
+            : '');
+
+    return _ClassroomSession(
+      id: str(json['id']),
+      title: str(json['title'] ?? json['sessionTitle'] ?? json['name']),
+      duration: (json['duration'] as num?)?.toDouble() ?? 0,
+      sessionNumber: (json['sessionNumber'] as num?)?.toInt() ??
+          (json['session_number'] as num?)?.toInt() ?? 0,
+      date: str(json['date'] ?? json['sessionDate'] ?? json['startDate']),
+      description: str(json['description'] ?? json['summary']),
+      videoUrl: videoUrl,
+      externalLink: externalLink,
+      fileUrl: str(json['fileUrl'] ?? json['file_url'] ?? json['materialUrl']),
+      attendanceCode: str(json['attendanceCode'] ?? json['attendance_code']),
+    );
+  }
 
   bool get hasVideo => videoUrl.isNotEmpty;
-  bool get hasExternalLink => externalLink.isNotEmpty;
   bool get hasFile => fileUrl.isNotEmpty;
-  bool get hasAnyLink => hasVideo || hasExternalLink;
+  bool get hasExternalLink => externalLink.isNotEmpty;
+  bool get hasContent => hasVideo || hasFile || hasExternalLink;
+
+  /// Full URL to stream/download the session material from Azure Blob.
+  String get fullFileUrl =>
+      '${ApiEndpoints.baseUrl}/Cloud/Get/sessions/$fileUrl';
 }
 
 class _ClassroomAssignment {
@@ -95,13 +128,26 @@ class _ClassroomAssignment {
       );
 }
 
-class MyLearningScreen extends StatelessWidget {
+class MyLearningScreen extends StatefulWidget {
   const MyLearningScreen({super.key});
 
   @override
+  State<MyLearningScreen> createState() => _MyLearningScreenState();
+}
+
+class _MyLearningScreenState extends State<MyLearningScreen> {
+  late final LearningCubit _cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = GetIt.instance<LearningCubit>()..loadLearning();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => GetIt.instance<LearningCubit>()..loadLearning(),
+    return BlocProvider.value(
+      value: _cubit,
       child: const _LearningBody(),
     );
   }
@@ -431,10 +477,15 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
   Future<void> _loadSessions() async {
     try {
       final dio = GetIt.instance<Dio>();
-      final response = await dio.get<List<dynamic>>(
+      final response = await dio.get<dynamic>(
         ApiEndpoints.getAllSessions(widget.enrolled.course.id),
       );
-      final list = response.data ?? [];
+      final raw = response.data;
+      final list = raw is List
+          ? raw
+          : raw is Map
+              ? ((raw['data'] ?? raw['sessions'] ?? <dynamic>[]) as List)
+              : <dynamic>[];
       final sessions = list
           .map((e) => _ClassroomSession.fromJson(e as Map<String, dynamic>))
           .toList()
@@ -448,10 +499,15 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
   Future<void> _loadAssignments() async {
     try {
       final dio = GetIt.instance<Dio>();
-      final response = await dio.get<List<dynamic>>(
+      final response = await dio.get<dynamic>(
         ApiEndpoints.getAllAssignments(widget.enrolled.course.id),
       );
-      final list = response.data ?? [];
+      final raw = response.data;
+      final list = raw is List
+          ? raw
+          : raw is Map
+              ? ((raw['data'] ?? raw['assignments'] ?? <dynamic>[]) as List)
+              : <dynamic>[];
       final assignments = list
           .map((e) => _ClassroomAssignment.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -668,9 +724,19 @@ class _SessionsTab extends StatelessWidget {
                 );
                 if (!context.mounted) return;
                 if (code != null && code.isNotEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Attendance code captured')),
-                  );
+                  try {
+                    final dio = GetIt.instance<Dio>();
+                    await dio.post<dynamic>(ApiEndpoints.markAttendance(code));
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Attendance marked successfully')),
+                    );
+                  } catch (_) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Could not mark attendance. Please try again.')),
+                    );
+                  }
                 }
               },
               child: const Row(
@@ -741,7 +807,7 @@ class _SessionsTab extends StatelessWidget {
                             ],
                           ),
                         ),
-                        if (s.hasVideo)
+                        if (s.hasContent)
                           Container(
                             width: 32,
                             height: 32,
@@ -750,8 +816,13 @@ class _SessionsTab extends StatelessWidget {
                               color: AppColors.primary,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Icon(Icons.play_arrow_rounded,
-                                size: 18, color: Colors.white),
+                            child: Icon(
+                              s.hasVideo || s.hasFile
+                                  ? Icons.play_arrow_rounded
+                                  : Icons.open_in_new_rounded,
+                              size: 18,
+                              color: Colors.white,
+                            ),
                           )
                         else
                           Icon(Icons.chevron_right_rounded,
@@ -868,30 +939,39 @@ class _SessionDetailSheetState extends State<_SessionDetailSheet> {
               const SizedBox(height: 4),
             ],
             const SizedBox(height: 16),
-            if (s.hasVideo) ...[
+            if (s.hasContent) ...[
               FilledButton.icon(
-                onPressed: () => _launch(s.videoUrl),
+                onPressed: () {
+                  if (s.hasVideo) {
+                    _launch(s.videoUrl);
+                  } else if (s.hasFile) {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => VideoPlayerScreen(
+                        url: s.fullFileUrl,
+                        title: s.title,
+                      ),
+                    ));
+                  } else {
+                    _launch(s.externalLink);
+                  }
+                },
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(50),
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                 ),
-                icon: const Icon(Icons.play_circle_outline_rounded, size: 20),
-                label: const Text('Watch Session'),
-              ),
-              const SizedBox(height: 10),
-            ],
-            if (s.hasExternalLink) ...[
-              OutlinedButton.icon(
-                onPressed: () => _launch(s.externalLink),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(46),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                icon: Icon(
+                  s.hasVideo || s.hasFile
+                      ? Icons.play_circle_outline_rounded
+                      : Icons.open_in_new_rounded,
+                  size: 20,
                 ),
-                icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                label: const Text('External Resources'),
+                label: Text(
+                  s.hasExternalLink && !s.hasVideo && !s.hasFile
+                      ? 'Open Resources'
+                      : 'Watch Session',
+                ),
               ),
               const SizedBox(height: 10),
             ],

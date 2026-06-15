@@ -6,6 +6,7 @@ import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/widgets/video_player_screen.dart';
 import 'package:edu_verse/student/features/enrollment/ui/screens/enroll_confirm_screen.dart';
 import '../../data/models/course_model.dart';
 
@@ -607,9 +608,18 @@ class _SessionDetail extends StatelessWidget {
               icon  = Icons.open_in_new_rounded;
               label = 'Open Link';
             } else if (session.fileUrl.isNotEmpty) {
-              url   = '${ApiEndpoints.baseUrl}/Cloud/Get/SessionMaterial/${session.fileUrl}';
-              icon  = Icons.attach_file_rounded;
-              label = 'View Material';
+              final fileUrl = '${ApiEndpoints.baseUrl}/Cloud/Get/sessions/${session.fileUrl}';
+              return _ActionButton(
+                icon: Icons.play_circle_outline_rounded,
+                label: 'Watch Session',
+                color: AppColors.primary,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => VideoPlayerScreen(
+                    url: fileUrl,
+                    title: session.title,
+                  ),
+                )),
+              );
             } else {
               return const SizedBox.shrink();
             }
@@ -653,17 +663,19 @@ class _ActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.color,
-    required this.url,
-  });
+    this.url,
+    this.onTap,
+  }) : assert(url != null || onTap != null);
   final IconData icon;
   final String label;
   final Color color;
-  final String url;
+  final String? url;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _launch(context, url),
+      onTap: onTap ?? () => _launch(context, url!),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
