@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/features/auth/shared/auth_session.dart';
 
 class AppAvatar extends StatelessWidget {
   const AppAvatar({
@@ -28,6 +29,9 @@ class AppAvatar extends StatelessWidget {
       return ClipOval(
         child: CachedNetworkImage(
           imageUrl: imageUrl!,
+          httpHeaders: AuthSession.token != null
+              ? {'Authorization': 'Bearer ${AuthSession.token}'}
+              : const {},
           width: radius * 2,
           height: radius * 2,
           fit: BoxFit.cover,
