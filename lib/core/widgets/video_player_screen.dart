@@ -45,14 +45,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Future<void> _setup() async {
-    if (_player.platform is NativePlayer) {
-      final np = _player.platform as NativePlayer;
-      // Server doesn't support HTTP range requests.
-      // force-seekable lets MPV open the stream; demuxer-seekable-cache
-      // buffers it locally so seeks happen in cache, not on the server.
-      await np.setProperty('force-seekable', 'yes');
-      await np.setProperty('demuxer-seekable-cache', 'yes');
-    }
     if (!mounted) return;
     await _player.open(
       Media(
