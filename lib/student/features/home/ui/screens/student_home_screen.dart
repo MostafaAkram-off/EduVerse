@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/preferences/app_preferences.dart';
 import '../../../../../core/theme/app_colors.dart';
@@ -18,7 +19,7 @@ String _greeting() {
   return 'Good Night 🌛';
 }
 
-class StudentHomeScreen extends StatelessWidget {
+class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({
     super.key,
     this.onSwitchTab,
@@ -30,12 +31,25 @@ class StudentHomeScreen extends StatelessWidget {
   final VoidCallback? onOpenNotifications;
 
   @override
+  State<StudentHomeScreen> createState() => _StudentHomeScreenState();
+}
+
+class _StudentHomeScreenState extends State<StudentHomeScreen> {
+  late final HomeCubit _cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = GetIt.instance<HomeCubit>()..loadHome();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => HomeCubit()..loadHome(),
+    return BlocProvider.value(
+      value: _cubit,
       child: _HomeBody(
-        onSwitchTab: onSwitchTab,
-        onOpenNotifications: onOpenNotifications,
+        onSwitchTab: widget.onSwitchTab,
+        onOpenNotifications: widget.onOpenNotifications,
       ),
     );
   }

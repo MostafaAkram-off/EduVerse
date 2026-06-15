@@ -61,6 +61,9 @@ import 'package:edu_verse/student/features/courses/ui/cubit/courses_cubit.dart';
 // ── Student Learning ───────────────────────────────────────────────────────
 import 'package:edu_verse/student/features/learning/ui/cubit/learning_cubit.dart';
 
+// ── Student Home ────────────────────────────────────────────────────────────
+import 'package:edu_verse/student/features/home/ui/cubit/home_cubit.dart';
+
 final sl = GetIt.instance;
 
 /// Call once from [main] before [runApp].
@@ -138,6 +141,9 @@ void configureDependencies() {
   // ── Student Courses ────────────────────────────────────────────────────────
   sl.registerFactory(() => CoursesCubit(sl()));
 
-  // ── Student Learning ────────────────────────────────────────────────────────
-  sl.registerFactory(() => LearningCubit(sl()));
+  // ── Student Home (singleton so PaymentReceiptScreen can trigger a refresh) ──
+  sl.registerLazySingleton(() => HomeCubit());
+
+  // ── Student Learning (singleton so enrollment refresh propagates) ───────────
+  sl.registerLazySingleton(() => LearningCubit(sl()));
 }
