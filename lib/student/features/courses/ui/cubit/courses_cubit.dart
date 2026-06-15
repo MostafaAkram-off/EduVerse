@@ -13,8 +13,13 @@ class CoursesCubit extends Cubit<CoursesState> {
   Future<void> loadCourses() async {
     emit(CoursesLoading());
     try {
-      final response = await _dio.get<List<dynamic>>(ApiEndpoints.getAllCourses);
-      final list = response.data ?? [];
+      final response = await _dio.get<dynamic>(ApiEndpoints.getAllCourses);
+      final raw = response.data;
+      final list = raw is List
+          ? raw
+          : raw is Map
+              ? ((raw['data'] ?? raw['courses'] ?? <dynamic>[]) as List)
+              : <dynamic>[];
       final courses = list
           .map((e) => CourseModel.fromJson(e as Map<String, dynamic>))
           .toList();
