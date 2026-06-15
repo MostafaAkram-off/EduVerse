@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:edu_verse/config/di/di.dart';
+import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
@@ -134,8 +136,7 @@ class _SubmissionsViewState extends State<_SubmissionsView> {
           elevation: 0,
           scrolledUnderElevation: 0,
           titleSpacing: 20,
-          // Show back button only when navigated from an assignment card
-          automaticallyImplyLeading: widget.assignmentId != null,
+          automaticallyImplyLeading: true,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -537,6 +538,33 @@ class _GradeSheetState extends State<_GradeSheet> {
               ),
 
               const SizedBox(height: 20),
+
+              if (widget.submission.fileUrl != null &&
+                  widget.submission.fileUrl!.isNotEmpty) ...[
+                OutlinedButton.icon(
+                  onPressed: () {
+                    final url = Uri.parse(
+                      ApiEndpoints.baseUrl +
+                          ApiEndpoints.cloudGet(
+                            'assignments',
+                            widget.submission.fileUrl!,
+                          ),
+                    );
+                    launchUrl(url, mode: LaunchMode.externalApplication);
+                  },
+                  icon: const Icon(Icons.insert_drive_file_outlined, size: 18),
+                  label: const Text('View Submission'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
 
               Text('Feedback (optional)', style: AppTextTheme.inputLabel),
               const SizedBox(height: 8),
