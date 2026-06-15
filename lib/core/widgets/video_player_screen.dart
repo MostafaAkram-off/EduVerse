@@ -45,6 +45,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Future<void> _setup() async {
+    // MP4 moov atom is at the end of the file (not faststart-encoded).
+    // demuxer-seekable-cache buffers the full stream locally so MPV can
+    // read the moov atom without needing HTTP range requests.
+    if (_player.platform is NativePlayer) {
+      final np = _player.platform as NativePlayer;
+      await np.setProperty('force-seekable', 'yes');
+      await np.setProperty('demuxer-seekable-cache', 'yes');
+    }
     if (!mounted) return;
     await _player.open(
       Media(
