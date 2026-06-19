@@ -1,9 +1,217 @@
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:edu_verse/core/preferences/app_preferences.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'certificates_screen.dart';
+
+// PdfColor helpers — PdfColor(r, g, b, alpha) where all values are 0.0–1.0
+const _pdfPrimary   = PdfColor(0.290, 0.424, 0.969);   // #4A6CF7
+const _pdfSecondary = PdfColor(0.486, 0.227, 0.929);   // #7C3AED
+const _pdfGold      = PdfColor(1.0,   0.843, 0.0);     // #FFD700
+const _pdfWhite     = PdfColors.white;
+const _pdfW75       = PdfColor(1, 1, 1, 0.75);
+const _pdfW70       = PdfColor(1, 1, 1, 0.70);
+const _pdfW60       = PdfColor(1, 1, 1, 0.60);
+const _pdfW50       = PdfColor(1, 1, 1, 0.50);
+const _pdfW25       = PdfColor(1, 1, 1, 0.25);
+const _pdfW10       = PdfColor(1, 1, 1, 0.10);
+const _pdfW07       = PdfColor(1, 1, 1, 0.07);
+const _pdfW05       = PdfColor(1, 1, 1, 0.05);
+
+Future<void> _generateAndSharePdf(CertItem item, String studentName) async {
+  final doc = pw.Document();
+
+  doc.addPage(
+    pw.Page(
+      pageFormat: PdfPageFormat.a4.landscape,
+      margin: pw.EdgeInsets.zero,
+      build: (ctx) => pw.Stack(
+        children: [
+          // Background gradient
+          pw.Container(
+            decoration: const pw.BoxDecoration(
+              gradient: pw.LinearGradient(
+                begin: pw.Alignment.topLeft,
+                end: pw.Alignment.bottomRight,
+                colors: [_pdfPrimary, _pdfSecondary],
+              ),
+            ),
+          ),
+          // Decorative circle top-right
+          pw.Positioned(
+            top: -60,
+            right: -60,
+            child: pw.Container(
+              width: 220,
+              height: 220,
+              decoration: const pw.BoxDecoration(
+                color: _pdfW07,
+                shape: pw.BoxShape.circle,
+              ),
+            ),
+          ),
+          // Decorative circle bottom-left
+          pw.Positioned(
+            bottom: -80,
+            left: -80,
+            child: pw.Container(
+              width: 260,
+              height: 260,
+              decoration: const pw.BoxDecoration(
+                color: _pdfW05,
+                shape: pw.BoxShape.circle,
+              ),
+            ),
+          ),
+          // Inner glass card
+          pw.Center(
+            child: pw.Container(
+              width: 560,
+              padding: const pw.EdgeInsets.symmetric(horizontal: 48, vertical: 36),
+              decoration: const pw.BoxDecoration(
+                color: _pdfW10,
+                borderRadius: pw.BorderRadius.all(pw.Radius.circular(20)),
+                border: pw.Border(
+                  top:    pw.BorderSide(color: _pdfW25, width: 1.5),
+                  bottom: pw.BorderSide(color: _pdfW25, width: 1.5),
+                  left:   pw.BorderSide(color: _pdfW25, width: 1.5),
+                  right:  pw.BorderSide(color: _pdfW25, width: 1.5),
+                ),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                mainAxisSize: pw.MainAxisSize.min,
+                children: [
+                  // Brand row
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.center,
+                    children: [
+                      pw.Container(
+                        width: 10, height: 10,
+                        decoration: const pw.BoxDecoration(
+                          color: _pdfGold, shape: pw.BoxShape.circle,
+                        ),
+                      ),
+                      pw.SizedBox(width: 8),
+                      pw.Text(
+                        'E D U V E R S E',
+                        style: pw.TextStyle(
+                          color: _pdfWhite,
+                          fontSize: 13,
+                          letterSpacing: 4,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.SizedBox(width: 8),
+                      pw.Container(
+                        width: 10, height: 10,
+                        decoration: const pw.BoxDecoration(
+                          color: _pdfGold, shape: pw.BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 6),
+                  pw.Text(
+                    'CERTIFICATE OF COMPLETION',
+                    style: pw.TextStyle(
+                      color: _pdfW75,
+                      fontSize: 9,
+                      letterSpacing: 2.5,
+                    ),
+                  ),
+                  pw.SizedBox(height: 28),
+                  pw.Divider(color: _pdfW25, thickness: 0.5),
+                  pw.SizedBox(height: 24),
+                  pw.Text(
+                    'This certifies that',
+                    style: pw.TextStyle(color: _pdfW70, fontSize: 12),
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Text(
+                    studentName,
+                    style: pw.TextStyle(
+                      color: _pdfWhite,
+                      fontSize: 28,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Text(
+                    'has successfully completed',
+                    style: pw.TextStyle(color: _pdfW70, fontSize: 12),
+                  ),
+                  pw.SizedBox(height: 12),
+                  pw.Text(
+                    item.title,
+                    style: pw.TextStyle(
+                      color: _pdfGold,
+                      fontSize: 20,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 24),
+                  pw.Divider(color: _pdfW25, thickness: 0.5),
+                  pw.SizedBox(height: 16),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (item.instructor.isNotEmpty)
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text('Instructor',
+                                style: pw.TextStyle(color: _pdfW60, fontSize: 9)),
+                            pw.SizedBox(height: 3),
+                            pw.Text(item.instructor,
+                                style: pw.TextStyle(color: _pdfWhite, fontSize: 11,
+                                    fontWeight: pw.FontWeight.bold)),
+                          ],
+                        )
+                      else
+                        pw.SizedBox(),
+                      if (item.date.isNotEmpty)
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.end,
+                          children: [
+                            pw.Text('Issue Date',
+                                style: pw.TextStyle(color: _pdfW60, fontSize: 9)),
+                            pw.SizedBox(height: 3),
+                            pw.Text(item.date,
+                                style: pw.TextStyle(color: _pdfWhite, fontSize: 11,
+                                    fontWeight: pw.FontWeight.bold)),
+                          ],
+                        )
+                      else
+                        pw.SizedBox(),
+                    ],
+                  ),
+                  if (item.id.isNotEmpty) ...[
+                    pw.SizedBox(height: 12),
+                    pw.Text(
+                      'Certificate ID: ${item.id}',
+                      style: pw.TextStyle(color: _pdfW50, fontSize: 8),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  await Printing.sharePdf(
+    bytes: await doc.save(),
+    filename: 'EduVerse_Certificate_${item.title.replaceAll(' ', '_')}.pdf',
+  );
+}
 
 class CertificateDetailScreen extends StatelessWidget {
   const CertificateDetailScreen({super.key, required this.item});
@@ -15,6 +223,8 @@ class CertificateDetailScreen extends StatelessWidget {
     final studentName = AppPreferences.instance.userName.isNotEmpty
         ? AppPreferences.instance.userName
         : 'Student';
+    final certItem = item;
+    final name = studentName;
 
     return Scaffold(
       appBar: AppBar(
@@ -222,41 +432,48 @@ class CertificateDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('PDF download coming soon'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            ),
-            icon: const Icon(Icons.download_rounded, size: 20),
-            label: const Text('Download PDF'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('LinkedIn sharing coming soon'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text(
-              'Add to LinkedIn',
-              style: AppTextTheme.bodySemibold
-                  .copyWith(color: const Color(0xFF0A66C2)),
-            ),
-          ),
+          _DownloadPdfButton(item: certItem, studentName: name),
         ],
+      ),
+    );
+  }
+}
+
+class _DownloadPdfButton extends StatefulWidget {
+  const _DownloadPdfButton({required this.item, required this.studentName});
+  final CertItem item;
+  final String studentName;
+
+  @override
+  State<_DownloadPdfButton> createState() => _DownloadPdfButtonState();
+}
+
+class _DownloadPdfButtonState extends State<_DownloadPdfButton> {
+  bool _generating = false;
+
+  Future<void> _download() async {
+    setState(() => _generating = true);
+    try {
+      await _generateAndSharePdf(widget.item, widget.studentName);
+    } finally {
+      if (mounted) setState(() => _generating = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: _generating ? null : _download,
+      icon: _generating
+          ? const SizedBox(
+              width: 18, height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            )
+          : const Icon(Icons.download_rounded, size: 20),
+      label: Text(_generating ? 'Generating...' : 'Download PDF'),
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
