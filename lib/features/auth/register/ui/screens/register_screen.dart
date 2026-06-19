@@ -221,33 +221,46 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         const SizedBox(height: 16),
 
                         // Date of birth
-                        _animated(3, GestureDetector(
-                          onTap: _pickBirthDate,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: context.surface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: context.border, width: 1.5),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.calendar_today_outlined,
-                                    color: context.textSecondary, size: 20),
-                                const SizedBox(width: 12),
-                                Text(
-                                  _selectedBirth == null
-                                      ? l10n.dateOfBirth
-                                      : DateFormat('MMM d, yyyy').format(_selectedBirth!),
-                                  style: AppTextTheme.bodyMedium.copyWith(
-                                    color: _selectedBirth == null
-                                        ? context.textSecondary
-                                        : context.textPrimary,
+                        _animated(3, Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(l10n.dateOfBirth, style: AppTextTheme.inputLabel),
+                            const SizedBox(height: 6),
+                            GestureDetector(
+                              onTap: _pickBirthDate,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: context.surface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _selectedBirth != null ? AppColors.primary : context.border,
+                                    width: _selectedBirth != null ? 1.5 : 1.5,
                                   ),
                                 ),
-                              ],
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_outlined,
+                                      color: _selectedBirth != null ? AppColors.primary : context.textSecondary,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      _selectedBirth == null
+                                          ? 'Select date'
+                                          : DateFormat('MMM d, yyyy').format(_selectedBirth!),
+                                      style: AppTextTheme.bodyMedium.copyWith(
+                                        color: _selectedBirth == null
+                                            ? context.textSecondary
+                                            : context.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         )),
                         const SizedBox(height: 20),
 
