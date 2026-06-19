@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:edu_verse/core/constants/app_assets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:edu_verse/core/preferences/app_preferences.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
@@ -156,8 +157,8 @@ class _SplashScreenState extends State<SplashScreen>
           // ── Glassmorphism card ───────────────────────────────
           Center(
             child: Container(
-              width: 220,
-              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 28),
+              width: 260,
+              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(32),
@@ -174,21 +175,10 @@ class _SplashScreenState extends State<SplashScreen>
                     opacity: _logoFade,
                     child: ScaleTransition(
                       scale: _logoScale,
-                      child: Container(
-                        width: 88,
-                        height: 88,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            'assets/images/EduVerse_logo.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                      child: Image.asset(
+                        AppAssets.logoFull,
+                        width: 220,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),

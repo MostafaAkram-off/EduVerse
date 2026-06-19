@@ -11,6 +11,7 @@ import 'package:edu_verse/core/preferences/app_preferences.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
+import 'package:edu_verse/features/auth/shared/auth_session.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({
@@ -310,6 +311,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   : photoUrl != null
                                       ? CachedNetworkImage(
                                           imageUrl: photoUrl,
+                                          httpHeaders: AuthSession.token != null
+                                              ? {'Authorization': 'Bearer ${AuthSession.token}'}
+                                              : const {},
                                           fit: BoxFit.cover,
                                           placeholder: (_, __) => Center(
                                             child: CircularProgressIndicator(

@@ -1,17 +1,18 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
-import 'package:edu_verse/features/auth/shared/auth_session.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
-  const VideoPlayerScreen({super.key, required this.url, this.title});
+  const VideoPlayerScreen({
+    super.key,
+    required this.url,
+    this.title,
+  });
 
   final String url;
   final String? title;
@@ -50,78 +51,41 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   Future<void> _setup() async {
     if (!mounted) return;
-
-    // Resolve the actual playback URL.
-    // The backend may redirect to an Azure SAS URL, or return a JSON body
-    // containing the real URL. We probe with Dio (which carries our auth
-    // interceptor) and adapt before handing the final URL to MPV.
-    String urlToPlay = widget.url;
-    bool needsAuthHeader = true;
+    setState(() => _error = null);
 
     try {
       final dio = GetIt.instance<Dio>();
-      final res = await dio.get<dynamic>(
-        widget.url,
-        options: Options(
-          followRedirects: false,
-          validateStatus: (_) => true,
-          responseType: ResponseType.plain,
-          receiveTimeout: const Duration(seconds: 15),
-        ),
-      );
 
-      final code = res.statusCode ?? 0;
+      // Hit /Cloud/GetSas/ to get a time-limited Azure SAS URL.
+      // SAS URLs are served directly by Azure Blob with native Range Request
+      // support, so seeking works without any extra MPV configuration.
+      final sasPath = widget.url.replaceFirst('/Cloud/Get/', '/Cloud/GetSas/');
+      final res = await dio.get<dynamic>(sasPath);
+      final data = res.data;
 
-      if (code >= 300 && code < 400) {
-        // Server redirects to storage (Azure SAS) — use Location header directly.
-        final loc = res.headers.value('location') ?? '';
-        if (loc.isNotEmpty) {
-          urlToPlay = loc;
-          needsAuthHeader = false; // SAS token is already in the query string
-        }
-      } else if (code == 200 && res.data is String) {
-        final body = (res.data as String).trim();
-        if (body.startsWith('{') || body.startsWith('[')) {
-          // Server returned a JSON body — extract the video URL from it.
-          final data = jsonDecode(body);
-          if (data is Map) {
-            final extracted = (data['url'] ??
-                    data['fileUrl'] ??
-                    data['sasUrl'] ??
-                    data['videoUrl'] ??
-                    data['blobUrl'] ??
-                    data['link']) as String?;
-            if (extracted != null && extracted.isNotEmpty) {
-              urlToPlay = extracted;
-              needsAuthHeader = !extracted.contains('sig=');
-            }
-          }
-        }
-        // If body is not JSON (binary bytes mis-decoded as plain text),
-        // fall through and play the original URL directly.
+      // Backend may return the SAS URL as a plain string or wrapped in JSON.
+      String? sasUrl;
+      if (data is String && data.trim().isNotEmpty) {
+        sasUrl = data.trim();
+      } else if (data is Map) {
+        sasUrl = (data['url'] ?? data['sasUrl'] ?? data['fileUrl'] ??
+            data['blobUrl'] ?? data['link']) as String?;
       }
-    } catch (_) {
-      // Probe failed — proceed with original URL and auth header.
-    }
 
-    if (_player.platform is NativePlayer) {
-      final np = _player.platform as NativePlayer;
-      await np.setProperty('force-seekable', 'yes');
-      await np.setProperty('demuxer-seekable-cache', 'yes');
-    }
+      if (sasUrl == null || sasUrl.isEmpty) {
+        throw Exception('No SAS URL returned from server');
+      }
 
-    if (!mounted) return;
-    await _player.open(
-      Media(
-        urlToPlay,
-        httpHeaders: {
-          if (needsAuthHeader &&
-              AuthSession.token != null &&
-              urlToPlay.contains(ApiEndpoints.baseUrl))
-            'Authorization': 'Bearer ${AuthSession.token}',
-        },
-      ),
-    );
+      // Give the native surface (Flutter Texture) a moment to attach
+      // before opening media, to avoid a black first frame.
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+
+      // SAS URL carries the auth signature in its query params — no Bearer header needed.
+      await _player.open(Media(sasUrl));
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    }
   }
 
   void _retry() {
@@ -177,12 +141,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         ),
         systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
-      body: _error != null
-          ? _ErrorBody(message: _error!, onRetry: _retry)
-          : Video(
-              controller: _controller,
-              controls: MaterialVideoControls,
-            ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Video(controller: _controller, controls: MaterialVideoControls),
+          if (_error != null)
+            _ErrorBody(message: _error!, onRetry: _retry),
+        ],
+      ),
     );
   }
 }
