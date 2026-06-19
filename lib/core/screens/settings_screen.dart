@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:edu_verse/core/l10n/app_localizations.dart';
+import 'package:edu_verse/core/preferences/app_preferences.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
-import 'package:edu_verse/core/theme/theme_ext.dart';
-import 'package:edu_verse/core/preferences/app_preferences.dart';
-import 'package:edu_verse/core/l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,346 +14,372 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const _kPush             = 'settings_push';
+  static const _kEmail            = 'settings_email';
+  static const _kSessionReminders = 'settings_session_reminders';
+  static const _kGradeAlerts      = 'settings_grade_alerts';
+  static const _kBiometric        = 'settings_biometric';
+  static const _kAutoDownload     = 'settings_auto_download';
+
+  bool _push             = true;
+  bool _email            = true;
+  bool _sessionReminders = true;
+  bool _gradeAlerts      = true;
+  bool _biometric        = true;
+  bool _autoDownload     = false;
+  bool _settingsLoaded   = false;
+
   @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: AppPreferences.instance,
-      builder: (context, _) {
-        final prefs = AppPreferences.instance;
-        final l10n = AppLocalizations.of(context);
-        final topPadding = MediaQuery.of(context).padding.top;
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
 
-        return Scaffold(
-          backgroundColor: context.bg,
-          body: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Gradient Header ────────────────────────────────────
-                Container(
-                  height: 140 + topPadding,
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.gradient1Start, AppColors.gradient1End],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: SafeArea(
-                    child: Stack(
-                      children: [
-                        // Back button
-                        Positioned(
-                          left: 4,
-                          top: 0,
-                          bottom: 0,
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              onPressed: () => context.pop(),
-                            ),
-                          ),
-                        ),
-                        // Title + subtitle
-                        Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                l10n.settingsTitle,
-                                style: AppTextTheme.displayMedium
-                                    .colored(Colors.white)
-                                    .copyWith(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                l10n.customizeExperience,
-                                style: AppTextTheme.bodySmall.colored(
-                                  Colors.white.withValues(alpha: 0.70),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+  Future<void> _loadSettings() async {
+    final p = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _push             = p.getBool(_kPush)             ?? true;
+      _email            = p.getBool(_kEmail)            ?? true;
+      _sessionReminders = p.getBool(_kSessionReminders) ?? true;
+      _gradeAlerts      = p.getBool(_kGradeAlerts)      ?? true;
+      _biometric        = p.getBool(_kBiometric)        ?? true;
+      _autoDownload     = p.getBool(_kAutoDownload)     ?? false;
+      _settingsLoaded   = true;
+    });
+  }
 
-                // ── Body ───────────────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // APPEARANCE SECTION
-                      _SectionHeader(l10n.appearance),
-                      const SizedBox(height: 10),
-                      _SettingsCard(
-                        children: [
-                          // Dark Mode
-                          _ToggleTile(
-                            icon: Icons.dark_mode_rounded,
-                            gradientColors: const [
-                              Color(0xFF6366F1),
-                              Color(0xFF8B5CF6),
-                            ],
-                            title: l10n.darkMode,
-                            subtitle: l10n.darkModeDesc,
-                            value: prefs.darkMode,
-                            onChanged: (v) => prefs.setDarkMode(v),
-                          ),
-                        ],
-                      ),
+  Future<void> _save(String key, bool value) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(key, value);
+  }
 
-                      const SizedBox(height: 28),
-
-                      // ABOUT SECTION
-                      _SectionHeader('About'),
-                      const SizedBox(height: 10),
-                      _SettingsCard(
-                        children: [
-                          _InfoTile(
-                            icon: Icons.info_outline_rounded,
-                            iconColor: AppColors.primary,
-                            title: 'App Version',
-                            trailing: Text(
-                              '1.0.0',
-                              style: AppTextTheme.labelMedium.colored(
-                                context.textTertiary,
-                              ),
-                            ),
-                            onTap: null,
-                            isLast: false,
-                          ),
-                          Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: context.divider,
-                            indent: 16,
-                            endIndent: 16,
-                          ),
-                          _InfoTile(
-                            icon: Icons.privacy_tip_outlined,
-                            iconColor: AppColors.success,
-                            title: 'Privacy Policy',
-                            isLast: false,
-                            onTap: () {},
-                          ),
-                          Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: context.divider,
-                            indent: 16,
-                            endIndent: 16,
-                          ),
-                          _InfoTile(
-                            icon: Icons.description_outlined,
-                            iconColor: AppColors.warning,
-                            title: 'Terms of Service',
-                            isLast: true,
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 40),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open link'),
+            behavior: SnackBarBehavior.floating,
           ),
         );
-      },
-    );
+      }
+    }
   }
-}
 
-// ─── Section Header ────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title);
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 0),
-      child: Text(
-        title.toUpperCase(),
-        style: AppTextTheme.sectionHeader.copyWith(
-          color: context.textTertiary,
-          fontSize: 11,
-          letterSpacing: 0.8,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Settings Card Container ────────────────────────────────────
-
-class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({required this.children});
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.20),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+  Future<void> _clearCache() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Clear Cache?'),
+        content: const Text('This will clear all cached images and temporary data.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Clear'),
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(children: children),
+    );
+    if (confirmed != true || !mounted) return;
+    PaintingBinding.instance.imageCache.clear();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cache cleared successfully'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(l10n.settingsTitle),
+      ),
+      body: _settingsLoaded
+          ? _buildBody(context, l10n)
+          : const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, AppLocalizations l10n) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        ListenableBuilder(
+          listenable: AppPreferences.instance,
+          builder: (context, _) {
+            final p = AppPreferences.instance;
+            return _Section(
+              title: l10n.appearance,
+              children: [
+                _ToggleTile(
+                  icon: Icons.dark_mode_outlined,
+                  label: l10n.darkMode,
+                  subtitle: l10n.darkModeDesc,
+                  value: p.darkMode,
+                  onChanged: (v) => p.setDarkMode(v),
+                  accent: AppColors.secondary,
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        _Section(
+          title: 'Notifications',
+          children: [
+            _ToggleTile(
+              icon: Icons.notifications_outlined,
+              label: 'Push Notifications',
+              subtitle: 'All app notifications',
+              value: _push,
+              onChanged: (v) { setState(() => _push = v); _save(_kPush, v); },
+            ),
+            _ToggleTile(
+              icon: Icons.mail_outline_rounded,
+              label: 'Email Alerts',
+              subtitle: 'Important updates via email',
+              value: _email,
+              onChanged: (v) { setState(() => _email = v); _save(_kEmail, v); },
+            ),
+            _ToggleTile(
+              icon: Icons.event_note_rounded,
+              label: 'Session Reminders',
+              subtitle: '30 min before sessions',
+              value: _sessionReminders,
+              onChanged: (v) { setState(() => _sessionReminders = v); _save(_kSessionReminders, v); },
+              accent: AppColors.success,
+            ),
+            _ToggleTile(
+              icon: Icons.grade_outlined,
+              label: 'Grade Alerts',
+              subtitle: 'When assignments are graded',
+              value: _gradeAlerts,
+              onChanged: (v) { setState(() => _gradeAlerts = v); _save(_kGradeAlerts, v); },
+              accent: AppColors.warning,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _Section(
+          title: 'Security',
+          children: [
+            _ToggleTile(
+              icon: Icons.fingerprint_rounded,
+              label: 'Biometric Login',
+              subtitle: 'Face ID / Fingerprint',
+              value: _biometric,
+              onChanged: (v) { setState(() => _biometric = v); _save(_kBiometric, v); },
+              accent: AppColors.success,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _Section(
+          title: 'Storage & Data',
+          children: [
+            _ToggleTile(
+              icon: Icons.download_outlined,
+              label: 'Auto-Download Materials',
+              subtitle: 'Download session files on Wi-Fi',
+              value: _autoDownload,
+              onChanged: (v) { setState(() => _autoDownload = v); _save(_kAutoDownload, v); },
+              accent: AppColors.warning,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Builder(builder: (context) {
+          final cs = Theme.of(context).colorScheme;
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cs.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.6)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ABOUT',
+                  style: AppTextTheme.badgeSm.copyWith(
+                    color: cs.onSurface.withValues(alpha: 0.5),
+                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const _AboutRow('App Version', '1.0.0 (Build 1)'),
+                const _AboutRow('Last Updated', 'Jun 2026'),
+                _AboutRow('Privacy Policy', 'View', isLink: true,
+                    onTap: () => _openUrl('https://eduverse.app/privacy')),
+                _AboutRow('Terms of Service', 'View', isLink: true,
+                    onTap: () => _openUrl('https://eduverse.app/terms')),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 12),
+        OutlinedButton(
+          onPressed: _clearCache,
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(48),
+            side: BorderSide(color: Theme.of(context).colorScheme.outline),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: Text(
+            'Clear Cache & Data',
+            style: AppTextTheme.bodySemibold.copyWith(color: AppColors.error),
+          ),
+        ),
+        const SizedBox(height: 100),
+      ],
     );
   }
 }
 
-// ─── Toggle Tile ────────────────────────────────────────────────
-
-class _ToggleTile extends StatelessWidget {
-  const _ToggleTile({
-    required this.icon,
-    required this.gradientColors,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final List<Color> gradientColors;
+class _Section extends StatelessWidget {
   final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
+  final List<Widget> children;
+  const _Section({required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            title.toUpperCase(),
+            style: AppTextTheme.badgeSm.copyWith(
+              color: cs.onSurface.withValues(alpha: 0.5),
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.6)),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < children.length; i++) ...[
+                if (i > 0)
+                  Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.5)),
+                children[i],
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ToggleTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final Color accent;
+
+  const _ToggleTile({
+    required this.icon,
+    required this.label,
+    this.subtitle,
+    required this.value,
+    required this.onChanged,
+    this.accent = AppColors.primary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
         children: [
-          // Gradient circle icon
           Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: gradientColors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              shape: BoxShape.circle,
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: Colors.white, size: 18),
+            child: Icon(icon, size: 18, color: accent),
           ),
-          const SizedBox(width: 14),
-          // Title + subtitle
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: AppTextTheme.cardTitle.copyWith(
-                    color: context.textPrimary,
+                Text(label, style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                if (subtitle != null)
+                  Text(
+                    subtitle!,
+                    style: tt.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: AppTextTheme.labelSmall.copyWith(
-                    color: context.textSecondary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
               ],
             ),
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: AppColors.primary,
-            activeTrackColor: AppColors.primary.withValues(alpha: 0.50),
-          ),
+          Switch.adaptive(value: value, onChanged: onChanged),
         ],
       ),
     );
   }
 }
 
-// ─── Info Tile ──────────────────────────────────────────────────
-
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.isLast,
-    this.onTap,
-    this.trailing,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final bool isLast;
+class _AboutRow extends StatelessWidget {
+  final String k;
+  final String v;
+  final bool isLink;
   final VoidCallback? onTap;
-  final Widget? trailing;
+
+  const _AboutRow(this.k, this.v, {this.isLink = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: iconColor, size: 18),
+            Text(k, style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              v,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: isLink ? cs.primary : cs.onSurface,
+                  ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: AppTextTheme.cardTitle.copyWith(
-                  color: context.textPrimary,
-                ),
-              ),
-            ),
-            if (trailing != null) trailing!,
-            if (onTap != null)
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: context.textTertiary,
-              ),
           ],
         ),
       ),

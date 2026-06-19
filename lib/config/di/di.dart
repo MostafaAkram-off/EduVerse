@@ -49,8 +49,6 @@ import 'package:edu_verse/features/instructor/ui/cubit/submissions_cubit.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/course_detail_cubit.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/session_detail_cubit.dart';
 
-// ── Student ────────────────────────────────────────────────────────────────
-import 'package:edu_verse/features/student/ui/cubit/student_cubit.dart';
 
 // ── Onboarding ─────────────────────────────────────────────────────────────
 import 'package:edu_verse/features/onboarding/ui/cubit/onboarding_cubit.dart';
@@ -131,9 +129,6 @@ void configureDependencies() {
   sl.registerFactory(() => InstructorSubmissionsCubit(sl()));
   sl.registerFactory(() => InstructorCourseDetailCubit(sl(), sl()));
   sl.registerFactory(() => InstructorSessionDetailCubit(sl(), sl()));
-
-  // ── Student ───────────────────────────────────────────────────────────────
-  sl.registerFactory(() => StudentCubit());
 
   // ── Onboarding ────────────────────────────────────────────────────────────
   sl.registerFactory(() => OnboardingCubit());

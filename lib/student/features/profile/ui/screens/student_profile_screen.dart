@@ -13,7 +13,7 @@ import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/features/auth/shared/auth_session.dart';
 import 'package:edu_verse/student/features/enrollment/ui/screens/payment_tracking_screen.dart';
 import 'package:edu_verse/core/screens/edit_profile_screen.dart';
-import 'settings_screen.dart';
+import 'package:edu_verse/core/screens/settings_screen.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({
