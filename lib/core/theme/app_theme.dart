@@ -336,8 +336,8 @@ DialogThemeData _dialogTheme() => DialogThemeData(
   backgroundColor: AppColors.card,
   elevation: 0,
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-  titleTextStyle:   AppTextTheme.displaySmall,
-  contentTextStyle: AppTextTheme.bodyMedium,
+  titleTextStyle:   AppTextTheme.displaySmall.colored(AppColors.textPrimary),
+  contentTextStyle: AppTextTheme.bodyMedium.colored(AppColors.textSecondary),
 );
 
 BottomSheetThemeData _bottomSheetTheme() => const BottomSheetThemeData(
