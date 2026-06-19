@@ -19,6 +19,7 @@ class HomeCubit extends Cubit<HomeState> {
       final results = await Future.wait([
         dio.get<dynamic>(ApiEndpoints.myEnrolledCourses),
         recommendationsApi.getForMe(),
+        dio.get<dynamic>(ApiEndpoints.myNotifications).catchError((_) => Response<dynamic>(requestOptions: RequestOptions(), statusCode: 200, data: [])),
       ]);
 
       // Parse enrolled courses
@@ -44,6 +45,19 @@ class HomeCubit extends Cubit<HomeState> {
         if (model.id.isNotEmpty) enrolledCourses.add(model);
       }
 
+      // my-enrolled-courses doesn't return progressPercent — fetch it per-course
+      if (enrolledCourses.isNotEmpty) {
+        final progressValues = await Future.wait(
+          enrolledCourses.map((c) => _fetchProgress(dio, c.id)),
+        );
+        for (var i = 0; i < enrolledCourses.length; i++) {
+          final pct = progressValues[i];
+          if (pct > 0) {
+            enrolledCourses[i] = enrolledCourses[i].copyWith(progressPercent: pct);
+          }
+        }
+      }
+
       // Parse personalized recommendations from API
       final recRaw = results[1].data;
       final recList = recRaw is List
@@ -61,15 +75,44 @@ class HomeCubit extends Cubit<HomeState> {
       final completedCount =
           enrolledCourses.where((c) => c.progressPercent >= 100).length;
 
+      // Count unread notifications (non-fatal)
+      int unreadCount = 0;
+      try {
+        final notifRaw = results[2].data;
+        final notifList = notifRaw is List
+            ? notifRaw
+            : notifRaw is Map
+                ? ((notifRaw['data'] ?? notifRaw['notifications'] ?? []) as List)
+                : <dynamic>[];
+        unreadCount = notifList
+            .where((n) => n is Map && n['isRead'] != true)
+            .length;
+      } catch (_) {}
+
       emit(HomeLoaded(
         enrolledCourses: enrolledCourses,
         upcomingSessions: const [],
         recommendedCourses: recommendations,
         completedCourses: completedCount,
         totalHours: totalHoursAccum.round(),
+        unreadNotifications: unreadCount,
       ));
     } catch (e) {
       emit(HomeError('Failed to load home data. Please try again.'));
+    }
+  }
+
+  Future<int> _fetchProgress(Dio dio, String courseId) async {
+    if (courseId.isEmpty) return 0;
+    try {
+      final resp = await dio.get<dynamic>(ApiEndpoints.progressCourse(courseId));
+      final raw = resp.data;
+      if (raw is! Map) return 0;
+      final pct = (raw['progression'] ?? raw['progressPercent'] ??
+                   raw['progress'] ?? raw['percent']) as num?;
+      return pct?.toInt() ?? 0;
+    } catch (_) {
+      return 0;
     }
   }
 }

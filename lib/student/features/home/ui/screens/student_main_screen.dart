@@ -18,7 +18,16 @@ class StudentMainScreen extends StatefulWidget {
 class _StudentMainScreenState extends State<StudentMainScreen> {
   int _currentIndex = 0;
 
-  void _setTab(int index) => setState(() => _currentIndex = index);
+  // Only the Home tab (index 0) loads on startup.
+  // Other tabs are lazily initialized on first visit.
+  final Set<int> _visited = {0};
+
+  void _setTab(int index) {
+    setState(() {
+      _visited.add(index);
+      _currentIndex = index;
+    });
+  }
 
   void _openNotifications() {
     Navigator.of(context).push<void>(
@@ -28,20 +37,11 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
     );
   }
 
-  List<Widget> _buildPages() {
-    return [
-      StudentHomeScreen(
-        onSwitchTab: _setTab,
-        onOpenNotifications: _openNotifications,
-      ),
-      const CoursesListScreen(),
-      const MyLearningScreen(),
-      const CertificatesScreen(),
-      StudentProfileScreen(
-        onOpenCertificatesTab: () => _setTab(3),
-        onOpenLearningTab: () => _setTab(2),
-      ),
-    ];
+  Widget _lazyPage(int index, Widget child) {
+    // Until a tab is first visited we render an empty box so the tab's
+    // initState / API calls are deferred until the user actually opens it.
+    if (!_visited.contains(index)) return const SizedBox.shrink();
+    return child;
   }
 
   @override
@@ -49,7 +49,6 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
-    final pages = _buildPages();
     final navLabelStyle = theme.textTheme.labelSmall?.copyWith(
       fontWeight: FontWeight.w600,
       fontSize: 10,
@@ -58,7 +57,27 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: pages,
+        children: [
+          // Tab 0 — always loaded
+          StudentHomeScreen(
+            onSwitchTab: _setTab,
+            onOpenNotifications: _openNotifications,
+          ),
+          // Tab 1 — Courses (lazy)
+          _lazyPage(1, const CoursesListScreen()),
+          // Tab 2 — My Learning (lazy)
+          _lazyPage(2, const MyLearningScreen()),
+          // Tab 3 — Certificates (lazy)
+          _lazyPage(3, const CertificatesScreen()),
+          // Tab 4 — Profile (lazy)
+          _lazyPage(
+            4,
+            StudentProfileScreen(
+              onOpenCertificatesTab: () => _setTab(3),
+              onOpenLearningTab: () => _setTab(2),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),

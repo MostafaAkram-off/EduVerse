@@ -7,6 +7,7 @@ import 'package:edu_verse/core/preferences/app_preferences.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_text_theme.dart';
 import '../../../../../core/theme/theme_ext.dart';
+import 'package:edu_verse/features/auth/shared/auth_session.dart';
 import 'package:edu_verse/student/features/home/ui/cubit/home_cubit.dart';
 import 'package:edu_verse/student/features/courses/data/models/course_model.dart';
 import 'package:edu_verse/student/features/courses/ui/screens/course_detail_screen.dart';
@@ -145,6 +146,7 @@ class _HomeContent extends StatelessWidget {
                           ),
                           _NotificationButton(
                             onTap: onOpenNotifications ?? () {},
+                            hasUnread: state.unreadNotifications > 0,
                           ),
                         ],
                       );
@@ -640,6 +642,9 @@ class _Avatar extends StatelessWidget {
       return ClipOval(
         child: CachedNetworkImage(
           imageUrl: photoUrl!,
+          httpHeaders: AuthSession.token != null
+              ? {'Authorization': 'Bearer ${AuthSession.token}'}
+              : const {},
           width: size,
           height: size,
           fit: BoxFit.cover,
@@ -677,7 +682,8 @@ class _Avatar extends StatelessWidget {
 
 class _NotificationButton extends StatelessWidget {
   final VoidCallback onTap;
-  const _NotificationButton({required this.onTap});
+  final bool hasUnread;
+  const _NotificationButton({required this.onTap, this.hasUnread = false});
 
   @override
   Widget build(BuildContext context) {
@@ -696,19 +702,20 @@ class _NotificationButton extends StatelessWidget {
               child: Icon(Icons.notifications_outlined,
                   size: 22, color: context.textPrimary),
             ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Container(
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
-                  color: AppColors.error,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: context.bg, width: 1.5),
+            if (hasUnread)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  width: 9,
+                  height: 9,
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: context.bg, width: 1.5),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

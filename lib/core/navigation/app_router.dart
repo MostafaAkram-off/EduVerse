@@ -29,7 +29,7 @@ import 'package:edu_verse/features/auth/forgot_password/ui/cubit/forgot_password
 import 'package:edu_verse/features/instructor/ui/screens/instructor_main_screen.dart';
 
 // Student
-import 'package:edu_verse/features/student/ui/screens/student_main_screen.dart';
+import 'package:edu_verse/student/features/home/ui/screens/student_main_screen.dart';
 
 // Settings
 import 'package:edu_verse/core/screens/settings_screen.dart';

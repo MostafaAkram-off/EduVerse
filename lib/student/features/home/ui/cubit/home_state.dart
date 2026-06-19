@@ -12,6 +12,7 @@ class HomeLoaded extends HomeState {
   final List<CourseModel> recommendedCourses;
   final int completedCourses;
   final int totalHours;
+  final int unreadNotifications;
 
   HomeLoaded({
     required this.enrolledCourses,
@@ -19,6 +20,7 @@ class HomeLoaded extends HomeState {
     required this.recommendedCourses,
     required this.completedCourses,
     required this.totalHours,
+    this.unreadNotifications = 0,
   });
 }
 

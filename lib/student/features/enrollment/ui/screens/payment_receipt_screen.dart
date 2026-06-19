@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
@@ -8,7 +11,7 @@ import 'package:edu_verse/student/features/courses/data/models/course_model.dart
 import 'package:edu_verse/student/features/home/ui/cubit/home_cubit.dart';
 import 'package:edu_verse/student/features/learning/ui/cubit/learning_cubit.dart';
 
-class PaymentReceiptScreen extends StatelessWidget {
+class PaymentReceiptScreen extends StatefulWidget {
   const PaymentReceiptScreen({
     super.key,
     required this.course,
@@ -20,8 +23,15 @@ class PaymentReceiptScreen extends StatelessWidget {
   final double totalPaid;
   final String paymentMethod;
 
+  @override
+  State<PaymentReceiptScreen> createState() => _PaymentReceiptScreenState();
+}
+
+class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
+  bool _generatingPdf = false;
+
   String get _receiptId {
-    final hash = (course.id.hashCode ^ DateTime.now().millisecondsSinceEpoch)
+    final hash = (widget.course.id.hashCode ^ DateTime.now().millisecondsSinceEpoch)
         .abs()
         .toString()
         .substring(0, 4);
@@ -35,6 +45,108 @@ class PaymentReceiptScreen extends StatelessWidget {
       'Jul','Aug','Sep','Oct','Nov','Dec',
     ];
     return '${months[now.month - 1]} ${now.day}, ${now.year}';
+  }
+
+  Future<void> _downloadPdf() async {
+    setState(() => _generatingPdf = true);
+    try {
+      const primary = PdfColor(0.290, 0.424, 0.969);
+      const success = PdfColor(0.133, 0.773, 0.369);
+      const white = PdfColors.white;
+      const grey = PdfColor(0.4, 0.4, 0.4);
+
+      final doc = pw.Document();
+      doc.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          margin: pw.EdgeInsets.zero,
+          build: (ctx) => pw.Container(
+            color: primary,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+              children: [
+                // Header
+                pw.Container(
+                  padding: const pw.EdgeInsets.fromLTRB(40, 40, 40, 28),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('EDUVERSE', style: pw.TextStyle(color: white, fontSize: 22, fontWeight: pw.FontWeight.bold, letterSpacing: 3)),
+                      pw.SizedBox(height: 4),
+                      pw.Text('PAYMENT RECEIPT', style: pw.TextStyle(color: PdfColor(1, 1, 1, 0.65), fontSize: 10, letterSpacing: 1.5)),
+                    ],
+                  ),
+                ),
+                // Body card
+                pw.Expanded(
+                  child: pw.Container(
+                    margin: const pw.EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    padding: const pw.EdgeInsets.all(32),
+                    decoration: const pw.BoxDecoration(
+                      color: white,
+                      borderRadius: pw.BorderRadius.all(pw.Radius.circular(16)),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        // Success badge
+                        pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: const pw.BoxDecoration(
+                            color: PdfColor(0.133, 0.773, 0.369, 0.15),
+                            borderRadius: pw.BorderRadius.all(pw.Radius.circular(8)),
+                          ),
+                          child: pw.Text('PAYMENT CONFIRMED', style: pw.TextStyle(color: success, fontSize: 10, fontWeight: pw.FontWeight.bold, letterSpacing: 1)),
+                        ),
+                        pw.SizedBox(height: 20),
+                        pw.Text('\$${widget.totalPaid.toStringAsFixed(0)}',
+                            style: pw.TextStyle(color: primary, fontSize: 36, fontWeight: pw.FontWeight.bold)),
+                        pw.SizedBox(height: 6),
+                        pw.Text('Total amount paid', style: pw.TextStyle(color: grey, fontSize: 12)),
+                        pw.SizedBox(height: 24),
+                        pw.Divider(color: PdfColor(0.9, 0.9, 0.9)),
+                        pw.SizedBox(height: 20),
+                        _pdfRow('Receipt No.', _receiptId),
+                        _pdfRow('Course', widget.course.title),
+                        _pdfRow('Amount Paid', '\$${widget.totalPaid.toStringAsFixed(0)}'),
+                        _pdfRow('Payment Date', _todayLabel),
+                        _pdfRow('Method', widget.paymentMethod),
+                        _pdfRow('Status', 'Confirmed'),
+                        pw.SizedBox(height: 24),
+                        pw.Divider(color: PdfColor(0.9, 0.9, 0.9)),
+                        pw.SizedBox(height: 16),
+                        pw.Text('Thank you for choosing EduVerse!',
+                            style: pw.TextStyle(color: grey, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await Printing.sharePdf(
+        bytes: await doc.save(),
+        filename: 'EduVerse_Receipt_${widget.course.title.replaceAll(' ', '_')}.pdf',
+      );
+    } finally {
+      if (mounted) setState(() => _generatingPdf = false);
+    }
+  }
+
+  pw.Widget _pdfRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 12),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: pw.TextStyle(color: const PdfColor(0.4, 0.4, 0.4), fontSize: 12)),
+          pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+        ],
+      ),
+    );
   }
 
   @override
@@ -105,10 +217,10 @@ class PaymentReceiptScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       _Line('Receipt No.', _receiptId),
-                      _Line('Course', course.title),
-                      _Line('Amount Paid', '\$${totalPaid.toStringAsFixed(0)}'),
+                      _Line('Course', widget.course.title),
+                      _Line('Amount Paid', '\$${widget.totalPaid.toStringAsFixed(0)}'),
                       _Line('Payment Date', _todayLabel),
-                      _Line('Method', paymentMethod),
+                      _Line('Method', widget.paymentMethod),
                       _Line(
                         'Status',
                         'Confirmed',
@@ -122,14 +234,15 @@ class PaymentReceiptScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('PDF download coming soon'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        ),
-                        icon: const Icon(Icons.download_rounded, size: 18),
-                        label: const Text('Download PDF'),
+                        onPressed: _generatingPdf ? null : _downloadPdf,
+                        icon: _generatingPdf
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.download_rounded, size: 18),
+                        label: Text(_generatingPdf ? 'Generating...' : 'Download PDF'),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(48),
                           shape: RoundedRectangleBorder(
@@ -144,9 +257,9 @@ class PaymentReceiptScreen extends StatelessWidget {
                         onPressed: () {
                           final text =
                               'EduVerse Receipt\n'
-                              'Course: ${course.title}\n'
-                              'Amount: \$${totalPaid.toStringAsFixed(0)}\n'
-                              'Method: $paymentMethod\n'
+                              'Course: ${widget.course.title}\n'
+                              'Amount: \$${widget.totalPaid.toStringAsFixed(0)}\n'
+                              'Method: ${widget.paymentMethod}\n'
                               'Date: $_todayLabel\n'
                               'Receipt: $_receiptId';
                           Clipboard.setData(ClipboardData(text: text));
