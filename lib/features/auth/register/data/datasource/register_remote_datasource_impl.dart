@@ -73,10 +73,8 @@ class RegisterRemoteDatasourceImpl implements RegisterRemoteDatasource {
   String? _extractMessage(DioException e) {
     final body = e.response?.data;
     if (body is Map) {
-      // Direct message field
-      final direct = body['message'] ?? body['Message'] ?? body['error'] ?? body['title'];
-      if (direct != null) return direct.toString();
-      // ASP.NET Identity validation: {"errors": {"Password": ["Passwords must..."]}}
+      // ASP.NET Identity validation errors — check these FIRST (most specific)
+      // Format: {"errors": {"Password": ["Passwords must have at least one..."]}}
       final errors = body['errors'];
       if (errors is Map && errors.isNotEmpty) {
         final parts = <String>[];
@@ -84,8 +82,11 @@ class RegisterRemoteDatasourceImpl implements RegisterRemoteDatasource {
           final val = entry.value;
           if (val is List && val.isNotEmpty) parts.add(val.first.toString());
         }
-        if (parts.isNotEmpty) return parts.join(' ');
+        if (parts.isNotEmpty) return parts.join('\n');
       }
+      // Direct message fields
+      final direct = body['message'] ?? body['Message'] ?? body['error'];
+      if (direct != null) return direct.toString();
     }
     if (body is String && body.isNotEmpty) return body;
     return null;
