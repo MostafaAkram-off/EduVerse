@@ -8,6 +8,7 @@ import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 import 'package:edu_verse/core/widgets/video_player_screen.dart';
 import 'package:edu_verse/student/features/enrollment/ui/screens/enroll_confirm_screen.dart';
+import 'package:edu_verse/student/features/learning/ui/screens/my_learning_screen.dart';
 import '../../data/models/course_model.dart';
 
 class _ApiSession {
@@ -1038,7 +1039,11 @@ class _BottomAction extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const MyLearningScreen(),
+                            ),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.success,
                             minimumSize: const Size(double.infinity, 50),

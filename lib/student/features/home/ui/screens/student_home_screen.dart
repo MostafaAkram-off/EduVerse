@@ -158,13 +158,7 @@ class _HomeContent extends StatelessWidget {
                   if (state.enrolledCourses.isNotEmpty)
                     _ContinueLearningBanner(
                       course: state.enrolledCourses.first,
-                      onResume: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => CourseDetailScreen(
-                            course: state.enrolledCourses.first,
-                          ),
-                        ),
-                      ),
+                      onResume: () => onSwitchTab?.call(2),
                     ),
                   const SizedBox(height: 4),
                 ],
