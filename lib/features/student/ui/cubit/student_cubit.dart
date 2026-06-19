@@ -90,16 +90,15 @@ class StudentCubit extends Cubit<StudentState> {
         allSessions.addAll(courseUpcoming);
         allPastSessions.addAll(courseCompleted);
 
-        // Count completed sessions (date in the past) for progress
-        int completedCount = 0;
-        for (final s in sessionsRaw) {
-          final raw = (s as Map<String, dynamic>)['date']?.toString() ?? '';
-          final date = DateTime.tryParse(raw);
-          if (date != null && date.isBefore(now)) completedCount++;
-        }
-
-        final progressPercent =
-            totalSessions > 0 ? (completedCount / totalSessions).clamp(0.0, 1.0) : 0.0;
+        final completedCount = courseCompleted.length;
+        // Prefer the server-reported progress (reflects actual mark-completed actions).
+        // Fall back to local date-based count only if the field is absent.
+        final serverPct = (item['progressPercent'] as num?)?.toDouble();
+        final progressPercent = serverPct != null
+            ? (serverPct / 100).clamp(0.0, 1.0)
+            : (totalSessions > 0
+                ? (completedCount / totalSessions).clamp(0.0, 1.0)
+                : 0.0);
 
         // Find next upcoming session for this course
         final upcoming = courseUpcoming

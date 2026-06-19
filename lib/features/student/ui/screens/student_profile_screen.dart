@@ -558,6 +558,9 @@ class _ProfileAvatar extends StatelessWidget {
         child: photoUrl != null
             ? CachedNetworkImage(
                 imageUrl: photoUrl,
+                httpHeaders: AuthSession.token != null
+                    ? {'Authorization': 'Bearer ${AuthSession.token}'}
+                    : const {},
                 width: 88,
                 height: 88,
                 fit: BoxFit.cover,
