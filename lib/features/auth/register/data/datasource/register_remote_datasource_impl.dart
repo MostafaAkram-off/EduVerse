@@ -13,7 +13,12 @@ class RegisterRemoteDatasourceImpl implements RegisterRemoteDatasource {
   /// Step 1 — only sends the OTP, does NOT call Register yet.
   @override
   Future<RegisterResponse> register(RegisterRequest request) async {
-    await _dio.post<void>(ApiEndpoints.sendConfirmationEmail(request.email));
+    try {
+      await _dio.post<void>(ApiEndpoints.sendConfirmationEmail(request.email));
+    } on DioException catch (e) {
+      final msg = _extractMessage(e) ?? 'Failed to send verification code';
+      throw Exception(msg);
+    }
     return RegisterResponse(
       message: 'Verification code sent to ${request.email}',
       email: request.email,
@@ -28,29 +33,49 @@ class RegisterRemoteDatasourceImpl implements RegisterRemoteDatasource {
   }) async {
     final full = request.copyWith(confirmationCode: code);
     final formData = FormData.fromMap({
-      'userName':         full.name,
+      'UserName':         full.name,
       'FullName':         full.name,
-      'email':            full.email,
+      'Email':            full.email,
       'phoneNumber':      full.phone,
       'Birth':            full.birth,
-      'password':         full.password,
+      'Password':         full.password,
       'confirmPassword':  full.confirmPassword,
       'role': full.role == UserRole.instructor ? 'Instructor' : 'Student',
       'ConfirmationCode': full.confirmationCode,
     });
 
-    final response = await _dio.post<Map<String, dynamic>>(
-      ApiEndpoints.register,
-      data: formData,
-    );
-    final data = response.data ?? {};
-    if (data['succeed'] == false) {
-      throw Exception(data['message'] ?? 'Registration failed');
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        ApiEndpoints.register,
+        data: formData,
+      );
+      final data = response.data ?? {};
+      if (data['succeed'] == false) {
+        throw Exception(data['message'] ?? 'Registration failed');
+      }
+    } on DioException catch (e) {
+      final msg = _extractMessage(e)
+          ?? 'Invalid or expired code. Please request a new one.';
+      throw Exception(msg);
     }
   }
 
   @override
   Future<void> resendVerification(String email) async {
-    await _dio.post<void>(ApiEndpoints.sendConfirmationEmail(email));
+    try {
+      await _dio.post<void>(ApiEndpoints.sendConfirmationEmail(email));
+    } on DioException catch (e) {
+      final msg = _extractMessage(e) ?? 'Failed to resend code';
+      throw Exception(msg);
+    }
+  }
+
+  String? _extractMessage(DioException e) {
+    final body = e.response?.data;
+    if (body is Map) {
+      return (body['message'] ?? body['Message'] ?? body['error'])?.toString();
+    }
+    if (body is String && body.isNotEmpty) return body;
+    return null;
   }
 }

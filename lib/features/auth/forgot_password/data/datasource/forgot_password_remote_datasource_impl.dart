@@ -10,13 +10,19 @@ class ForgotPasswordRemoteDatasourceImpl
 
   @override
   Future<void> sendResetCode(String email) async {
-    final response = await _dio.post<Map<String, dynamic>>(
-      ApiEndpoints.forgotPassword,
-      data: {'email': email},
-    );
-    final data = response.data ?? {};
-    if (data['succeed'] == false) {
-      throw Exception(data['message'] ?? 'Failed to send reset code');
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        ApiEndpoints.forgotPassword,
+        data: {'email': email},
+      );
+      final data = response.data ?? {};
+      if (data['succeed'] == false) {
+        throw Exception(data['message'] ?? 'Failed to send reset code');
+      }
+    } on DioException catch (e) {
+      throw Exception(
+        _extractMessage(e) ?? 'This feature is not available yet.',
+      );
     }
   }
 
@@ -25,13 +31,17 @@ class ForgotPasswordRemoteDatasourceImpl
     required String email,
     required String code,
   }) async {
-    final response = await _dio.post<Map<String, dynamic>>(
-      ApiEndpoints.verifyCode,
-      data: {'email': email, 'code': code},
-    );
-    final data = response.data ?? {};
-    if (data['succeed'] == false) {
-      throw Exception(data['message'] ?? 'Invalid code');
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        ApiEndpoints.verifyCode,
+        data: {'email': email, 'code': code},
+      );
+      final data = response.data ?? {};
+      if (data['succeed'] == false) {
+        throw Exception(data['message'] ?? 'Invalid code');
+      }
+    } on DioException catch (e) {
+      throw Exception(_extractMessage(e) ?? 'Invalid or expired code.');
     }
   }
 
@@ -41,13 +51,26 @@ class ForgotPasswordRemoteDatasourceImpl
     required String code,
     required String newPassword,
   }) async {
-    final response = await _dio.post<Map<String, dynamic>>(
-      ApiEndpoints.resetPassword,
-      data: {'email': email, 'code': code, 'newPassword': newPassword},
-    );
-    final data = response.data ?? {};
-    if (data['succeed'] == false) {
-      throw Exception(data['message'] ?? 'Failed to reset password');
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        ApiEndpoints.resetPassword,
+        data: {'email': email, 'code': code, 'newPassword': newPassword},
+      );
+      final data = response.data ?? {};
+      if (data['succeed'] == false) {
+        throw Exception(data['message'] ?? 'Failed to reset password');
+      }
+    } on DioException catch (e) {
+      throw Exception(_extractMessage(e) ?? 'Failed to reset password.');
     }
+  }
+
+  String? _extractMessage(DioException e) {
+    final body = e.response?.data;
+    if (body is Map) {
+      return (body['message'] ?? body['Message'] ?? body['error'])?.toString();
+    }
+    if (body is String && body.isNotEmpty) return body;
+    return null;
   }
 }
