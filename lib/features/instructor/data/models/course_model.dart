@@ -47,9 +47,9 @@ class CourseModel {
         json['completion_rate'] ??
         json['progress'] ??
         0;
-    final completionRate =
-        (rawRate is int ? rawRate.toDouble() : (rawRate as num).toDouble())
-            .clamp(0.0, 1.0);
+    var rate = (rawRate is int ? rawRate.toDouble() : (rawRate as num).toDouble());
+    if (rate > 1.0) rate = rate / 100.0;
+    final completionRate = rate.clamp(0.0, 1.0);
 
     return CourseModel(
       id: rawId,

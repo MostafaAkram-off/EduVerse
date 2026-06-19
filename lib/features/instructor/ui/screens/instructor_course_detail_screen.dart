@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:edu_verse/config/di/di.dart';
 import 'package:edu_verse/core/constants/api_endpoints.dart';
-import 'package:edu_verse/features/auth/shared/auth_session.dart';
 import 'package:edu_verse/features/instructor/ui/screens/instructor_submissions_screen.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
@@ -512,7 +512,10 @@ class _AssignmentCard extends StatelessWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.all(14),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+            Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
@@ -627,7 +630,40 @@ class _AssignmentCard extends StatelessWidget {
             },
           ),
         ],
-            ),  // Row
+            ),  // outer Row
+                if (assignment.hasFile) ...[
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final uri = Uri.parse(assignment.fullFileUrl);
+                      if (!await launchUrl(uri,
+                          mode: LaunchMode.externalApplication)) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Could not open file')),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.insert_drive_file_outlined,
+                        size: 16),
+                    label: const Text('View Assignment File'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: BorderSide(
+                          color: AppColors.primary.withValues(alpha: 0.5)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ],
+            ),  // Column
           ),    // Padding
         ),      // InkWell
       ),        // Material
@@ -1031,9 +1067,8 @@ class _CreateSessionSheetState extends State<_CreateSessionSheet> {
     try {
       final dio = GetIt.instance<Dio>();
       final fields = <String, dynamic>{
-        'Course':      widget.courseId,
+        'CourseId':    widget.courseId,
         'Title':       title,
-        'TrainerId':   AuthSession.id,
         'Description': _descCtrl.text.trim(),
         if (_videoUrlCtrl.text.trim().isNotEmpty)
           'VideoUrl': _videoUrlCtrl.text.trim(),

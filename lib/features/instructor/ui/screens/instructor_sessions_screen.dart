@@ -58,19 +58,7 @@ class _Body extends StatelessWidget {
           scrolledUnderElevation: 0,
           titleSpacing: 20,
           title: Text('Sessions', style: AppTextTheme.screenTitle),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.calendar_month_rounded,
-                  color: context.textPrimary),
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Calendar view coming soon'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
+          actions: const [],
         ),
 
         if (isEmpty)

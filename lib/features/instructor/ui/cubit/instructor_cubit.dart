@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:edu_verse/api/courses/courses_api_service.dart';
 import 'package:edu_verse/api/instructor/instructor_api_service.dart';
 import 'package:edu_verse/features/instructor/data/models/course_model.dart';
 import 'package:edu_verse/features/instructor/data/models/instructor_stats.dart';
@@ -8,10 +7,9 @@ import 'package:edu_verse/features/instructor/data/models/student_model.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_state.dart';
 
 class InstructorCubit extends Cubit<InstructorState> {
-  InstructorCubit(this._api, this._coursesApi) : super(const InstructorInitial());
+  InstructorCubit(this._api) : super(const InstructorInitial());
 
   final InstructorApiService _api;
-  final CoursesApiService _coursesApi;
 
   Future<void> loadData() async {
     emit(const InstructorLoading());
@@ -20,7 +18,7 @@ class InstructorCubit extends Cubit<InstructorState> {
         _api.getOverview(),
         _api.getSessions(),
         _api.getStudents(),
-        _coursesApi.getAllCourses(),
+        _api.getMyCourses(),
       ]);
 
       // Parse stats — unwrap optional 'data' envelope

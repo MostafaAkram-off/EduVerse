@@ -16,12 +16,14 @@ class InstructorStats {
   final String? completionTrend;
 
   factory InstructorStats.fromJson(Map<String, dynamic> json) {
-    final rate = json['completionRate'] ?? json['completion_rate'] ?? 0;
+    final rawRate = json['completionRate'] ?? json['completion_rate'] ?? 0;
+    var rate = (rawRate is int ? rawRate.toDouble() : (rawRate as num).toDouble());
+    if (rate > 1.0) rate = rate / 100.0;
     return InstructorStats(
       totalStudents:   (json['totalStudents']   ?? json['total_students']   ?? 0) as int,
       activeCourses:   (json['activeCourses']   ?? json['active_courses']   ?? 0) as int,
       sessionsToday:   (json['sessionsToday']   ?? json['sessions_today']   ?? 0) as int,
-      completionRate:  (rate is int ? rate.toDouble() : (rate as num).toDouble()),
+      completionRate:  rate.clamp(0.0, 1.0),
       studentsTrend:   json['studentsTrend']?.toString()  ?? json['students_trend']?.toString(),
       completionTrend: json['completionTrend']?.toString() ?? json['completion_trend']?.toString(),
     );

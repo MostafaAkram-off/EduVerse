@@ -13,6 +13,7 @@ import 'package:edu_verse/features/instructor/data/models/course_model.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_cubit.dart';
 import 'package:edu_verse/features/instructor/ui/cubit/instructor_state.dart';
 import 'package:edu_verse/features/instructor/ui/screens/instructor_course_detail_screen.dart';
+import 'package:edu_verse/features/instructor/ui/screens/instructor_create_course_screen.dart';
 
 class InstructorCoursesScreen extends StatefulWidget {
   const InstructorCoursesScreen({super.key});
@@ -32,6 +33,22 @@ class _InstructorCoursesScreenState
       builder: (context, state) {
         return Scaffold(
           backgroundColor: context.bg,
+          floatingActionButton: state is InstructorLoaded
+              ? FloatingActionButton.extended(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => InstructorCreateCourseScreen(
+                        onCreated: () =>
+                            context.read<InstructorCubit>().loadData(),
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('New Course'),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                )
+              : null,
           body: switch (state) {
             InstructorLoading() || InstructorInitial() =>
               _buildSkeleton(context),
@@ -44,19 +61,6 @@ class _InstructorCoursesScreenState
               ),
             _ => const SizedBox(),
           },
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Course creation coming soon'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            ),
-            backgroundColor: AppColors.primary,
-            icon: const Icon(Icons.add_rounded, color: Colors.white),
-            label: Text('Add Course',
-                style: AppTextTheme.buttonSmall
-                    .colored(AppColors.textOnPrimary)),
-          ),
         );
       },
     );
@@ -84,7 +88,7 @@ class _InstructorCoursesScreenState
             children: [
               Text('My Courses', style: AppTextTheme.screenTitle),
               Text('${all.length} total',
-                  style: AppTextTheme.appBarSubtitle),
+                  style: AppTextTheme.appBarSubtitle.colored(context.textSecondary)),
             ],
           ),
         ),
