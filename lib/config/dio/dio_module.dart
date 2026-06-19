@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:edu_verse/core/constants/api_endpoints.dart';
+import 'package:edu_verse/core/preferences/app_preferences.dart';
 import 'package:edu_verse/features/auth/shared/auth_session.dart';
 
 class DioModule {
@@ -19,7 +21,7 @@ class DioModule {
     );
 
     dio.interceptors.addAll([
-      // Attach Bearer token from AuthSession on every request
+      // Attach Bearer token + handle 401 by clearing session
       InterceptorsWrapper(
         onRequest: (options, handler) {
           if (options.extra['skipAuth'] != true) {
@@ -28,14 +30,21 @@ class DioModule {
               options.headers['Authorization'] = 'Bearer $token';
             }
           }
-          // Let multipart/form-data set its own Content-Type
           if (options.data is! FormData) {
             options.headers[Headers.contentTypeHeader] = 'application/json';
           }
           handler.next(options);
         },
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 401) {
+            // Token expired — clear session so the app redirects to login
+            AuthSession.clear();
+            await AppPreferences.instance.clearSession();
+          }
+          handler.next(error);
+        },
       ),
-      LogInterceptor(requestBody: true, responseBody: true, error: true),
+      if (kDebugMode) LogInterceptor(requestBody: true, responseBody: true, error: true),
       if (extraInterceptors != null) ...extraInterceptors,
     ]);
 

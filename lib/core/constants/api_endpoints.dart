@@ -15,12 +15,13 @@ abstract final class ApiEndpoints {
   static const String resetPassword  = '/Auth/ResetPassword';
   static String sendConfirmationEmail(String email) =>
       '/Auth/SendConfirmationEmail/$email';
-  static String reviveToken(String token) => '/Auth/ReviveToken/$token';
+  static const String reviveToken  = '/Auth/ReviveToken';
   static const String confirmEmail = '/Auth/ConfirmEmail';
 
   // ── Cloud ─────────────────────────────────────────────────
   static String cloudAdd(String folder)                        => '/Cloud/Add/$folder';
   static String cloudGet(String folder, String filename)       => '/Cloud/Get/$folder/$filename';
+  static String cloudGetSas(String folder, String filename)    => '/Cloud/GetSas/$folder/$filename';
   static String cloudDelete(String folder, String filename)    => '/Cloud/Delete/$folder/$filename';
   static String getProfilePicture(String filename)             => '/Cloud/Get/ProfilePicture/$filename';
   static String deleteProfilePicture(String filename)          => '/Cloud/Delete/ProfilePicture/$filename';
@@ -28,6 +29,8 @@ abstract final class ApiEndpoints {
 
   // ── Courses ───────────────────────────────────────────────
   static const String getAllCourses    = '/Course/GetAll';
+  static const String createCourse    = '/Course/Create';
+  static const String updateCourse    = '/Course/Update';
   static const String addRating        = '/Course/AddRating';
   static const String addAssignment    = '/Course/AddAssignment';
   static String getCourseById(String id)              => '/Course/GetById/$id';
@@ -68,14 +71,18 @@ abstract final class ApiEndpoints {
 
   // Progress
   static const String updateProgress = '/User/updateprogress';
-  static String myCourseProgress(String courseId)    => '/User/my-course-progress/$courseId';
-  static String markSessionCompleted(String sessionId) => '/User/mark-session-completed/$sessionId';
+  static String myCourseProgress(String courseId)      => '/User/my-course-progress/$courseId';
+  static String markSessionCompleted(String sessionId)  => '/User/mark-session-completed/$sessionId';
+  static String toggleSessionDone(String sessionId)     => '/Progress/ToggleSessionDone/$sessionId';
+  static String progressCourse(String courseId)         => '/Progress/Course/$courseId';
+  static String assignmentProgress(String courseId)     => '/AssignmentProgress/Course/$courseId';
 
   // Certificates
   static const String myCertificates  = '/User/my-certificates';
   static const String addCertificate  = '/User/addcertificate';
-  static String generateCertificate(String courseId) => '/Certificate/Generate/$courseId';
-  static String verifyCertificate(String code)       => '/Certificate/Verify/$code';
+  static String generateCertificate(String courseId)   => '/Certificate/Generate/$courseId';
+  static String certificateEligibility(String courseId) => '/Certificate/Eligibility/$courseId';
+  static String verifyCertificate(String code)         => '/Certificate/Verify/$code';
   static String userCertificates(String email)       => '/User/usercertificates/$email';
   static String myCertificate(String courseId)       => '/User/my-certificate/$courseId';
   static String certificateFile(String courseId, String email) =>
@@ -101,6 +108,7 @@ abstract final class ApiEndpoints {
   static const String instructorSessions    = '/Instructor/Sessions';
   static const String instructorStudents    = '/Instructor/Students';
   static const String instructorSubmissions = '/Instructor/Submissions';
+  static const String instructorMyCourses   = '/Instructor/MyCourses';
   static String instructorSubmission(String assignmentId, String studentId) =>
       '/Instructor/Submission/$assignmentId/$studentId';
   static String gradeSubmission(String assignmentId, String studentId) =>

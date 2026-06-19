@@ -9,11 +9,11 @@ class LearningApiService {
   Future<Response<dynamic>> getMyEnrolledCourses() =>
       _dio.get(ApiEndpoints.myEnrolledCourses);
 
-  Future<Response<dynamic>> getMyCourseProgress(String courseId) =>
-      _dio.get(ApiEndpoints.myCourseProgress(courseId));
+  Future<Response<dynamic>> getCourseProgress(String courseId) =>
+      _dio.get(ApiEndpoints.progressCourse(courseId));
 
-  Future<Response<dynamic>> markSessionCompleted(String sessionId) =>
-      _dio.post(ApiEndpoints.markSessionCompleted(sessionId));
+  Future<Response<dynamic>> toggleSessionDone(String sessionId) =>
+      _dio.post(ApiEndpoints.toggleSessionDone(sessionId));
 
   Future<Response<dynamic>> getMyAssignments() =>
       _dio.get(ApiEndpoints.myAssignments);

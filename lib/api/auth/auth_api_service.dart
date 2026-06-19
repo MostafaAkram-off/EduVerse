@@ -31,5 +31,5 @@ class AuthApiService {
       _dio.get(ApiEndpoints.getProfile);
 
   Future<Response<dynamic>> reviveToken(String token) =>
-      _dio.post(ApiEndpoints.reviveToken(token));
+      _dio.post(ApiEndpoints.reviveToken, data: token);
 }

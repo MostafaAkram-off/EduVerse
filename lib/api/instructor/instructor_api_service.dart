@@ -15,6 +15,9 @@ class InstructorApiService {
   Future<Response<dynamic>> getStudents() =>
       _dio.get(ApiEndpoints.instructorStudents);
 
+  Future<Response<dynamic>> getMyCourses() =>
+      _dio.get(ApiEndpoints.instructorMyCourses);
+
   Future<Response<dynamic>> getSubmissions() =>
       _dio.get(ApiEndpoints.instructorSubmissions);
 

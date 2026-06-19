@@ -127,7 +127,7 @@ void configureDependencies() {
         ));
 
   // ── Instructor ────────────────────────────────────────────────────────────
-  sl.registerFactory(() => InstructorCubit(sl(), sl()));
+  sl.registerFactory(() => InstructorCubit(sl()));
   sl.registerFactory(() => InstructorSubmissionsCubit(sl()));
   sl.registerFactory(() => InstructorCourseDetailCubit(sl(), sl()));
   sl.registerFactory(() => InstructorSessionDetailCubit(sl(), sl()));
