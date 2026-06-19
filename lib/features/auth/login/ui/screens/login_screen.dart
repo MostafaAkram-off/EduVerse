@@ -10,6 +10,7 @@ import 'package:edu_verse/core/widgets/app_text_field.dart';
 import 'package:edu_verse/core/navigation/app_routes.dart';
 import 'package:edu_verse/features/auth/login/ui/cubit/login_cubit.dart';
 import 'package:edu_verse/features/auth/login/ui/cubit/login_state.dart';
+import 'package:edu_verse/core/constants/app_assets.dart';
 import 'package:edu_verse/features/auth/shared/user_role.dart';
 
 class _WaveClipper extends CustomClipper<Path> {
@@ -125,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 ClipPath(
                   clipper: _WaveClipper(),
                   child: Container(
-                    height: 280,
+                    height: 260,
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
@@ -135,9 +136,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     ),
                     child: SafeArea(
                       child: Center(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Image.asset('assets/images/EduVerse_logo.png', width: 90),
+                        child: Image.asset(
+                          AppAssets.logoFull,
+                          height: 130,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
@@ -200,14 +202,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           _animated(2, Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(l10n.comingSoon),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              },
+                              onPressed: () => context.push(AppRoutes.forgotPassword),
                               child: Text(
                                 l10n.forgotPassword,
                                 style: AppTextTheme.buttonSmall.copyWith(
@@ -246,13 +241,17 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   Expanded(child: _SocialButton(
                                     label: 'Google',
                                     icon: Icons.g_mobiledata_rounded,
-                                    onPressed: () {},
+                                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Google login coming soon'), behavior: SnackBarBehavior.floating),
+                                    ),
                                   )),
                                   const SizedBox(width: 12),
                                   Expanded(child: _SocialButton(
                                     label: 'Apple',
                                     icon: Icons.apple,
-                                    onPressed: () {},
+                                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Apple login coming soon'), behavior: SnackBarBehavior.floating),
+                                    ),
                                   )),
                                 ],
                               ),
