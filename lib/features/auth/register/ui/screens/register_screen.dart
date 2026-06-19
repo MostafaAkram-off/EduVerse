@@ -287,6 +287,9 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           validator: (v) {
                             if (v == null || v.isEmpty) return l10n.fieldRequired;
                             if (v.length < 6) return l10n.passwordMinLength;
+                            if (!v.contains(RegExp(r'[A-Z]'))) return 'Must contain an uppercase letter';
+                            if (!v.contains(RegExp(r'[0-9]'))) return 'Must contain a number';
+                            if (!v.contains(RegExp(r'[^A-Za-z0-9]'))) return 'Must contain a special character (!@#\$...)';
                             return null;
                           },
                         )),

@@ -73,7 +73,19 @@ class RegisterRemoteDatasourceImpl implements RegisterRemoteDatasource {
   String? _extractMessage(DioException e) {
     final body = e.response?.data;
     if (body is Map) {
-      return (body['message'] ?? body['Message'] ?? body['error'])?.toString();
+      // Direct message field
+      final direct = body['message'] ?? body['Message'] ?? body['error'] ?? body['title'];
+      if (direct != null) return direct.toString();
+      // ASP.NET Identity validation: {"errors": {"Password": ["Passwords must..."]}}
+      final errors = body['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        final parts = <String>[];
+        for (final entry in errors.entries) {
+          final val = entry.value;
+          if (val is List && val.isNotEmpty) parts.add(val.first.toString());
+        }
+        if (parts.isNotEmpty) return parts.join(' ');
+      }
     }
     if (body is String && body.isNotEmpty) return body;
     return null;
