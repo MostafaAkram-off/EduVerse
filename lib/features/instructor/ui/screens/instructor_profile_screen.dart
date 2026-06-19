@@ -94,6 +94,7 @@ class _InstructorProfileScreenState
                       data: {
                         'currentPassword': currentCtrl.text,
                         'newPassword': newCtrl.text,
+                        'confirmPassword': confirmCtrl.text,
                       },
                     );
                     if (ctx.mounted) Navigator.pop(ctx);

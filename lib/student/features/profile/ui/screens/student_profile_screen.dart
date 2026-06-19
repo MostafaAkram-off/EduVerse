@@ -137,6 +137,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                         data: {
                           'currentPassword': currentCtrl.text,
                           'newPassword': newCtrl.text,
+                          'confirmPassword': confirmCtrl.text,
                         },
                       );
                       if (ctx.mounted) Navigator.of(ctx).pop();
