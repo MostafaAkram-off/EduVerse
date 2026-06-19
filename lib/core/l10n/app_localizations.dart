@@ -49,7 +49,7 @@ class AppLocalizations {
   String get joinLearners        => _t('Join thousands of learners today',            'انضم لآلاف المتعلمين اليوم');
   String get fullName            => _t('Full name',                                   'الاسم الكامل');
   String get fullNameHint        => _t('Enter your full name',                        'أدخل اسمك الكامل');
-  String get phoneOptional       => _t('Phone (optional)',                            'الهاتف (اختياري)');
+  String get phoneOptional       => _t('Phone number',                               'رقم الهاتف');
   String get phoneHint           => _t('Enter your phone number',                    'أدخل رقم هاتفك');
   String get dateOfBirth         => _t('Date of birth',                              'تاريخ الميلاد');
   String get iAmA                => _t('I am a...',                                  'أنا...');

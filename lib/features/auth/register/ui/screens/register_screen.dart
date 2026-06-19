@@ -205,7 +205,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         )),
                         const SizedBox(height: 16),
 
-                        // Phone (optional)
+                        // Phone (required)
                         _animated(2, AppTextField(
                           label: l10n.phoneOptional,
                           hint: l10n.phoneHint,
@@ -213,6 +213,10 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           prefixIcon: Icons.phone_outlined,
                           keyboardType: TextInputType.phone,
                           textInputAction: TextInputAction.next,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return l10n.fieldRequired;
+                            return null;
+                          },
                         )),
                         const SizedBox(height: 16),
 

@@ -256,11 +256,16 @@ class _NotificationBell extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
+              color: context.isDark
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : AppColors.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.notifications_outlined,
-                color: Colors.white, size: 22),
+            child: Icon(
+              Icons.notifications_outlined,
+              color: context.isDark ? Colors.white : AppColors.primary,
+              size: 22,
+            ),
           ),
           Positioned(
             top: 6,
