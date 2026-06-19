@@ -50,7 +50,7 @@ class _UploadAssignmentScreenState extends State<UploadAssignmentScreen> {
     try {
       final Dio dio = GetIt.instance<Dio>();
       final formData = FormData.fromMap({
-        'file': MultipartFile.fromBytes(bytes, filename: file.name),
+        'File': MultipartFile.fromBytes(bytes, filename: file.name),
       });
       await dio.post<dynamic>(
         ApiEndpoints.submitAssignmentById(widget.assignmentId),

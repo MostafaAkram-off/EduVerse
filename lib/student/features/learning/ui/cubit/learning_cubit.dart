@@ -45,8 +45,27 @@ class LearningCubit extends Cubit<LearningState> {
         );
       }).toList();
 
+      // my-enrolled-courses doesn't return progressPercent — fetch it per-course
+      if (enrolled.isNotEmpty) {
+        final progressValues = await Future.wait(
+          enrolled.map((e) => _fetchProgress(e.course.id)),
+        );
+        for (var i = 0; i < enrolled.length; i++) {
+          final pct = progressValues[i];
+          if (pct > 0) {
+            enrolled[i] = EnrolledCourseModel(
+              course: enrolled[i].course.copyWith(progressPercent: pct),
+              sessions: const [],
+              assignments: const [],
+              attendedSessions: 0,
+              totalSessions: 0,
+            );
+          }
+        }
+      }
+
       final inProgress = enrolled.where((e) => e.course.progressPercent < 100).toList();
-      final completed  = enrolled.where((e) => e.course.progressPercent == 100).toList();
+      final completed  = enrolled.where((e) => e.course.progressPercent >= 100).toList();
 
       emit(LearningLoaded(
         inProgress: inProgress,
@@ -55,6 +74,20 @@ class LearningCubit extends Cubit<LearningState> {
       ));
     } catch (e) {
       emit(LearningError('Failed to load your courses. Please try again.'));
+    }
+  }
+
+  Future<int> _fetchProgress(String courseId) async {
+    if (courseId.isEmpty) return 0;
+    try {
+      final resp = await _dio.get<dynamic>(ApiEndpoints.progressCourse(courseId));
+      final raw = resp.data;
+      if (raw is! Map) return 0;
+      final pct = (raw['progression'] ?? raw['progressPercent'] ??
+                   raw['progress'] ?? raw['percent']) as num?;
+      return pct?.toInt() ?? 0;
+    } catch (_) {
+      return 0;
     }
   }
 

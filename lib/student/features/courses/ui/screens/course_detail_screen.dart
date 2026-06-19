@@ -184,11 +184,12 @@ class _CourseHero extends StatelessWidget {
                   Text(course.title,
                       style: AppTextTheme.certTitle.copyWith(fontSize: 20)),
                   const SizedBox(height: 4),
-                  Text('by ${course.instructor}',
-                      style: AppTextTheme.certLabel.copyWith(
-                          color: Colors.white70,
-                          letterSpacing: 0,
-                          fontWeight: FontWeight.w400)),
+                  if (course.instructor.isNotEmpty)
+                    Text('by ${course.instructor}',
+                        style: AppTextTheme.certLabel.copyWith(
+                            color: Colors.white70,
+                            letterSpacing: 0,
+                            fontWeight: FontWeight.w400)),
                   const SizedBox(height: 14),
                 ],
               ),

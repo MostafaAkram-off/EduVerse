@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:edu_verse/api/attendance/attendance_api_service.dart';
 import 'package:edu_verse/core/constants/api_endpoints.dart';
+import 'package:edu_verse/features/auth/shared/auth_session.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
@@ -35,6 +37,7 @@ class _ClassroomSession {
   final String externalLink;
   final String fileUrl;
   final String attendanceCode;
+  final bool isCompleted;
 
   const _ClassroomSession({
     required this.id,
@@ -47,6 +50,7 @@ class _ClassroomSession {
     required this.externalLink,
     required this.fileUrl,
     required this.attendanceCode,
+    this.isCompleted = false,
   });
 
   factory _ClassroomSession.fromJson(Map<String, dynamic> json) {
@@ -80,7 +84,7 @@ class _ClassroomSession {
             : '');
 
     return _ClassroomSession(
-      id: str(json['id']),
+      id: str(json['id'] ?? json['sessionId']),
       title: str(json['title'] ?? json['sessionTitle'] ?? json['name']),
       duration: (json['duration'] as num?)?.toDouble() ?? 0,
       sessionNumber: (json['sessionNumber'] as num?)?.toInt() ??
@@ -91,6 +95,9 @@ class _ClassroomSession {
       externalLink: externalLink,
       fileUrl: str(json['fileUrl'] ?? json['file_url'] ?? json['materialUrl']),
       attendanceCode: str(json['attendanceCode'] ?? json['attendance_code']),
+      isCompleted: (json['isCompleted'] as bool?) ??
+          (json['is_completed'] as bool?) ??
+          false,
     );
   }
 
@@ -109,23 +116,33 @@ class _ClassroomAssignment {
   final String subject;
   final String description;
   final String date;
+  final String fileUrl;
 
   const _ClassroomAssignment({
     required this.id,
     required this.subject,
     required this.description,
     required this.date,
+    this.fileUrl = '',
   });
 
-  factory _ClassroomAssignment.fromJson(Map<String, dynamic> json) =>
-      _ClassroomAssignment(
-        id: json['id'] as String? ?? '',
-        subject: json['subject'] as String? ??
-            json['title'] as String? ??
-            'Assignment',
-        description: json['description'] as String? ?? '',
-        date: json['date'] as String? ?? '',
-      );
+  factory _ClassroomAssignment.fromJson(Map<String, dynamic> json) {
+    String str(dynamic v) {
+      final s = (v ?? '').toString().trim();
+      return s == 'null' ? '' : s;
+    }
+    return _ClassroomAssignment(
+      id:          str(json['id']),
+      subject:     str(json['subject'] ?? json['title'] ?? 'Assignment'),
+      description: str(json['description']),
+      date:        str(json['dueDate'] ?? json['due_date'] ?? json['date']),
+      fileUrl:     str(json['fileUrl'] ?? json['file_url'] ?? json['materialUrl']),
+    );
+  }
+
+  bool get hasFile => fileUrl.isNotEmpty;
+  String get fullFileUrl =>
+      '${ApiEndpoints.baseUrl}/Cloud/Get/assignments/$fileUrl';
 }
 
 class MyLearningScreen extends StatefulWidget {
@@ -400,8 +417,9 @@ class _EnrolledCourseCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis),
                         const SizedBox(height: 3),
-                        Text('by ${course.instructor}',
-                            style: AppTextTheme.cardSubtitle),
+                        if (course.instructor.isNotEmpty)
+                          Text('by ${course.instructor}',
+                              style: AppTextTheme.cardSubtitle),
                         const SizedBox(height: 10),
                         // Progress
                         Row(
@@ -466,12 +484,61 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
   bool _assignmentsLoading = true;
   final Set<String> _submittedIds = {};
 
+  // Local progress — updated immediately when sessions are toggled.
+  late int _progressPercent;
+  final Set<String> _completedIds = {};
+  bool _completionDataLoaded = false;
+  // null = not loaded yet, true/false = server answer
+  bool? _eligibleFromApi;
+
   @override
   void initState() {
     super.initState();
+    _progressPercent = widget.enrolled.course.progressPercent;
     _tabController = TabController(length: 3, vsync: this);
     _loadSessions();
     _loadAssignments();
+    _loadProgress();
+    _loadEligibility();
+    _loadAssignmentProgress();
+  }
+
+  void _onSessionToggled(String id, bool isNowCompleted) {
+    if (isNowCompleted) {
+      _completedIds.add(id);
+    } else {
+      _completedIds.remove(id);
+    }
+    final total = _sessions?.length ?? 0;
+    if (total == 0) return;
+
+    int newPercent;
+    if (_completionDataLoaded) {
+      newPercent = (_completedIds.length * 100 / total).round();
+    } else {
+      final delta = (100 / total).round();
+      newPercent = (_progressPercent + (isNowCompleted ? delta : -delta))
+          .clamp(0, 100);
+      _completionDataLoaded = true;
+    }
+
+    setState(() => _progressPercent = newPercent);
+
+    // Persist the new progress to the server via the working endpoint.
+    _syncProgress(newPercent);
+  }
+
+  void _syncProgress(int percent) {
+    final courseId = widget.enrolled.course.id;
+    if (courseId.isEmpty) return;
+    GetIt.instance<Dio>().put<dynamic>(
+      ApiEndpoints.updateProgress,
+      data: {
+        'courseId': courseId,
+        'email': AuthSession.email,
+        'progressionValue': percent,
+      },
+    ).ignore();
   }
 
   Future<void> _loadSessions() async {
@@ -490,9 +557,80 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
           .map((e) => _ClassroomSession.fromJson(e as Map<String, dynamic>))
           .toList()
         ..sort((a, b) => a.sessionNumber.compareTo(b.sessionNumber));
-      if (mounted) setState(() { _sessions = sessions; _sessionsLoading = false; });
+      if (mounted) {
+        setState(() {
+          _sessions = sessions;
+          _sessionsLoading = false;
+          // Only use isCompleted from sessions if the API actually returns it
+          // (at least one session flagged true). Otherwise keep the progressPercent
+          // that came from the enrolled-courses API, which the backend computes server-side.
+          final completedFromApi =
+              sessions.where((s) => s.isCompleted).toList();
+          if (completedFromApi.isNotEmpty) {
+            _completedIds
+              ..clear()
+              ..addAll(completedFromApi.map((s) => s.id));
+            _progressPercent =
+                (_completedIds.length * 100 / sessions.length).round();
+            _completionDataLoaded = true;
+          }
+        });
+      }
     } catch (_) {
       if (mounted) setState(() { _sessions = []; _sessionsLoading = false; });
+    }
+  }
+
+  // Fetches per-session completion status from the progress endpoint so that
+  // _completedIds is populated even when GetAllSessions doesn't carry isCompleted.
+  Future<void> _loadProgress() async {
+    try {
+      final dio = GetIt.instance<Dio>();
+      final resp = await dio.get<dynamic>(
+        ApiEndpoints.progressCourse(widget.enrolled.course.id),
+      );
+      final raw = resp.data;
+      if (raw is! Map) return;
+
+      // Try to extract completed session IDs from various field names the
+      // backend might use.
+      final dynamic idList =
+          raw['completedSessionIds'] ??
+          raw['completedSessions'] ??
+          raw['sessionIds'] ??
+          raw['sessions'];
+
+      if (idList is List && idList.isNotEmpty) {
+        final ids = idList.map((e) => e.toString()).toSet();
+        if (mounted) {
+          setState(() {
+            _completedIds
+              ..clear()
+              ..addAll(ids);
+            _completionDataLoaded = true;
+            final total = _sessions?.length ?? 0;
+            if (total > 0) {
+              _progressPercent =
+                  (_completedIds.length * 100 / total).round();
+            }
+          });
+        }
+        return;
+      }
+
+      // If the endpoint only returns a percent (no id list), use it
+      // as long as we haven't already got real id data.
+      if (!_completionDataLoaded) {
+        final pct = (raw['progression'] ??
+                raw['progressPercent'] ??
+                raw['progress'] ??
+                raw['percent']) as num?;
+        if (pct != null && mounted) {
+          setState(() => _progressPercent = pct.toInt());
+        }
+      }
+    } catch (_) {
+      // Non-fatal — keep whatever value we have from enrolled courses.
     }
   }
 
@@ -514,6 +652,52 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
       if (mounted) setState(() { _assignments = assignments; _assignmentsLoading = false; });
     } catch (_) {
       if (mounted) setState(() { _assignments = []; _assignmentsLoading = false; });
+    }
+  }
+
+  Future<void> _loadEligibility() async {
+    final courseId = widget.enrolled.course.id;
+    if (courseId.isEmpty) return;
+    try {
+      final dio = GetIt.instance<Dio>();
+      final resp = await dio.get<dynamic>(
+        ApiEndpoints.certificateEligibility(courseId),
+      );
+      final raw = resp.data;
+      bool? eligible;
+      if (raw is bool) {
+        eligible = raw;
+      } else if (raw is Map) {
+        eligible = (raw['eligible'] ?? raw['isEligible'] ?? raw['result']) as bool?;
+      }
+      if (eligible != null && mounted) {
+        setState(() => _eligibleFromApi = eligible);
+      }
+    } catch (_) {
+      // Non-fatal — fall back to local calculation in _ProgressTab.
+    }
+  }
+
+  Future<void> _loadAssignmentProgress() async {
+    final courseId = widget.enrolled.course.id;
+    if (courseId.isEmpty) return;
+    try {
+      final dio = GetIt.instance<Dio>();
+      final resp = await dio.get<dynamic>(
+        ApiEndpoints.assignmentProgress(courseId),
+      );
+      final raw = resp.data;
+      if (raw is! Map) return;
+      // Extract submitted assignment IDs if the server returns them.
+      final dynamic idList =
+          raw['submittedIds'] ?? raw['submittedAssignmentIds'] ?? raw['ids'];
+      if (idList is List && idList.isNotEmpty && mounted) {
+        setState(() {
+          _submittedIds.addAll(idList.map((e) => e.toString()));
+        });
+      }
+    } catch (_) {
+      // Non-fatal — local optimistic state remains.
     }
   }
 
@@ -567,17 +751,18 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
                         style: AppTextTheme.certTitle
                             .copyWith(fontSize: 18)),
                     const SizedBox(height: 3),
-                    Text('by ${course.instructor}',
-                        style: AppTextTheme.certLabel.copyWith(
-                            color: Colors.white70,
-                            letterSpacing: 0,
-                            fontWeight: FontWeight.w400)),
+                    if (course.instructor.isNotEmpty)
+                      Text('by ${course.instructor}',
+                          style: AppTextTheme.certLabel.copyWith(
+                              color: Colors.white70,
+                              letterSpacing: 0,
+                              fontWeight: FontWeight.w400)),
                     const SizedBox(height: 14),
                     // Progress
                     ClipRRect(
                       borderRadius: BorderRadius.circular(999),
                       child: LinearProgressIndicator(
-                        value: course.progressPercent / 100,
+                        value: _progressPercent / 100,
                         minHeight: 6,
                         backgroundColor: Colors.white30,
                         valueColor: const AlwaysStoppedAnimation<Color>(
@@ -586,7 +771,7 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${course.progressPercent}% complete · ${course.duration}',
+                      '$_progressPercent% complete · ${course.duration}',
                       style: AppTextTheme.timestamp
                           .copyWith(color: Colors.white70),
                     ),
@@ -621,6 +806,7 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
                     setState(() { _sessions = null; _sessionsLoading = true; });
                     _loadSessions();
                   },
+                  onSessionToggled: _onSessionToggled,
                 ),
                 _AssignmentsTab(
                   assignments: _assignments,
@@ -637,9 +823,11 @@ class _ClassroomScreenState extends State<_ClassroomScreen>
                 ),
                 _ProgressTab(
                   enrolled: widget.enrolled,
+                  progressPercent: _progressPercent,
                   sessions: _sessions,
                   assignments: _assignments,
                   submittedIds: _submittedIds,
+                  eligibleFromApi: _eligibleFromApi,
                 ),
               ],
             ),
@@ -657,15 +845,16 @@ class _SessionsTab extends StatelessWidget {
   final List<_ClassroomSession>? sessions;
   final bool loading;
   final VoidCallback onRetry;
+  final void Function(String id, bool isNowCompleted)? onSessionToggled;
 
   const _SessionsTab({
     required this.sessions,
     required this.loading,
     required this.onRetry,
+    this.onSessionToggled,
   });
 
-  static void _showSessionDetail(
-      BuildContext context, _ClassroomSession session) {
+  void _showSessionDetail(BuildContext context, _ClassroomSession session) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -673,7 +862,10 @@ class _SessionsTab extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => _SessionDetailSheet(session: session),
+      builder: (_) => _SessionDetailSheet(
+        session: session,
+        onToggled: onSessionToggled,
+      ),
     );
   }
 
@@ -711,43 +903,6 @@ class _SessionsTab extends StatelessWidget {
               style: AppTextTheme.bodySemibold,
             ),
             const Spacer(),
-            FilledButton.tonal(
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () async {
-                final code = await Navigator.of(context).push<String>(
-                  MaterialPageRoute<String>(
-                      builder: (_) => const QrScannerScreen()),
-                );
-                if (!context.mounted) return;
-                if (code != null && code.isNotEmpty) {
-                  try {
-                    final dio = GetIt.instance<Dio>();
-                    await dio.post<dynamic>(ApiEndpoints.markAttendance(code));
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Attendance marked successfully')),
-                    );
-                  } catch (_) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Could not mark attendance. Please try again.')),
-                    );
-                  }
-                }
-              },
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.qr_code_scanner_rounded, size: 18),
-                  SizedBox(width: 6),
-                  Text('QR Scan'),
-                ],
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -843,7 +998,8 @@ class _SessionsTab extends StatelessWidget {
 // ─────────────────────────────────────────────
 class _SessionDetailSheet extends StatefulWidget {
   final _ClassroomSession session;
-  const _SessionDetailSheet({required this.session});
+  final void Function(String id, bool isNowCompleted)? onToggled;
+  const _SessionDetailSheet({required this.session, this.onToggled});
 
   @override
   State<_SessionDetailSheet> createState() => _SessionDetailSheetState();
@@ -851,7 +1007,13 @@ class _SessionDetailSheet extends StatefulWidget {
 
 class _SessionDetailSheetState extends State<_SessionDetailSheet> {
   bool _marking = false;
-  bool _marked = false;
+  late bool _marked;
+
+  @override
+  void initState() {
+    super.initState();
+    _marked = widget.session.isCompleted;
+  }
 
   Future<void> _launch(String rawUrl) async {
     final url = Uri.tryParse(rawUrl);
@@ -865,16 +1027,30 @@ class _SessionDetailSheetState extends State<_SessionDetailSheet> {
     }
   }
 
-  Future<void> _markCompleted() async {
-    setState(() => _marking = true);
+  Future<void> _toggleCompleted() async {
+    // Optimistic update — flip state immediately so the UI responds at once.
+    final newState = !_marked;
+    setState(() { _marked = newState; _marking = false; });
+    widget.onToggled?.call(widget.session.id, newState);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(newState ? 'Session marked as completed' : 'Marked as incomplete'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: newState ? Colors.green.shade700 : null,
+        ),
+      );
+    }
+
+    // Toggle session completion on the server via the Progress endpoint.
     try {
       final dio = GetIt.instance<Dio>();
       await dio.post<dynamic>(
-        ApiEndpoints.markSessionCompleted(widget.session.id),
+        ApiEndpoints.toggleSessionDone(widget.session.id),
       );
-      if (mounted) setState(() { _marked = true; _marking = false; });
     } catch (_) {
-      if (mounted) setState(() => _marking = false);
+      // Non-fatal — progress is also synced via PUT /User/updateprogress.
     }
   }
 
@@ -975,41 +1151,76 @@ class _SessionDetailSheetState extends State<_SessionDetailSheet> {
               ),
               const SizedBox(height: 10),
             ],
-            if (_marked)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.check_circle_rounded,
-                        color: AppColors.success, size: 20),
-                    SizedBox(width: 8),
-                    Text('Session marked as completed',
-                        style: TextStyle(color: AppColors.success)),
-                  ],
-                ),
-              )
-            else
-              OutlinedButton.icon(
-                onPressed: _marking ? null : _markCompleted,
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
-                icon: _marking
-                    ? const SizedBox(
-                        width: 16, height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.check_rounded, size: 18),
-                label: const Text('Mark as Completed'),
+            OutlinedButton.icon(
+              onPressed: _marking ? null : _toggleCompleted,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                foregroundColor: _marked ? AppColors.success : null,
+                side: _marked
+                    ? const BorderSide(color: AppColors.success)
+                    : null,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
               ),
+              icon: _marking
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _marked ? AppColors.success : null,
+                      ),
+                    )
+                  : Icon(
+                      _marked
+                          ? Icons.check_circle_rounded
+                          : Icons.check_rounded,
+                      size: 18,
+                    ),
+              label: Text(
+                _marked ? 'Completed · Tap to undo' : 'Mark as Completed',
+              ),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final result = await Navigator.of(context).push<String>(
+                  MaterialPageRoute(
+                    builder: (_) => QrScannerScreen(
+                      sessionName: s.title,
+                      sessionTime: s.date.isNotEmpty ? _fmtDate(s.date) : null,
+                    ),
+                  ),
+                );
+                if (result != null && context.mounted) {
+                  try {
+                    await GetIt.instance<AttendanceApiService>()
+                        .markAttendance(s.id, result);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Attendance marked successfully')),
+                      );
+                    }
+                  } catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Could not mark attendance')),
+                      );
+                    }
+                  }
+                }
+              },
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                foregroundColor: AppColors.primary,
+              ),
+              icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+              label: const Text('Scan QR to Attend'),
+            ),
           ],
         ),
       ),
@@ -1111,26 +1322,63 @@ class _AssignmentsTab extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: context.borderLight),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(a.subject, style: AppTextTheme.cardTitle),
-                        if (a.date.isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          Text('Due: ${_fmtDate(a.date)}',
-                              style: AppTextTheme.timestamp),
-                        ],
-                        const SizedBox(height: 8),
-                        _StatusBadge(status: status),
-                      ],
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(a.subject, style: AppTextTheme.cardTitle),
+                            if (a.date.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Text('Due: ${_fmtDate(a.date)}',
+                                  style: AppTextTheme.timestamp),
+                            ],
+                            const SizedBox(height: 8),
+                            _StatusBadge(status: status),
+                          ],
+                        ),
+                      ),
+                      if (!isSubmitted)
+                        const Icon(Icons.upload_file_rounded,
+                            size: 20, color: AppColors.primary),
+                    ],
                   ),
-                  if (!isSubmitted)
-                    const Icon(Icons.upload_file_rounded,
-                        size: 20, color: AppColors.primary),
+                  if (a.hasFile) ...[
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final uri = Uri.parse(a.fullFileUrl);
+                        if (!await launchUrl(uri,
+                            mode: LaunchMode.externalApplication)) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Could not open file')),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.insert_drive_file_outlined,
+                          size: 16),
+                      label: const Text('View Assignment File'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(
+                            color: AppColors.primary.withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        textStyle: AppTextTheme.labelSmall,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1144,44 +1392,80 @@ class _AssignmentsTab extends StatelessWidget {
 // ─────────────────────────────────────────────
 // PROGRESS TAB
 // ─────────────────────────────────────────────
-class _ProgressTab extends StatelessWidget {
+class _ProgressTab extends StatefulWidget {
   final EnrolledCourseModel enrolled;
+  final int progressPercent;
   final List<_ClassroomSession>? sessions;
   final List<_ClassroomAssignment>? assignments;
   final Set<String> submittedIds;
+  final bool? eligibleFromApi;
 
   const _ProgressTab({
     required this.enrolled,
+    required this.progressPercent,
     required this.sessions,
     required this.assignments,
     required this.submittedIds,
+    this.eligibleFromApi,
   });
 
   @override
+  State<_ProgressTab> createState() => _ProgressTabState();
+}
+
+class _ProgressTabState extends State<_ProgressTab> {
+  bool _generating = false;
+  bool _generated = false;
+  String? _certError;
+
+  Future<void> _generateCertificate() async {
+    setState(() { _generating = true; _certError = null; });
+    try {
+      final dio = GetIt.instance<Dio>();
+      await dio.post<dynamic>(
+        ApiEndpoints.generateCertificate(widget.enrolled.course.id),
+      );
+      if (mounted) setState(() { _generated = true; _generating = false; });
+    } catch (e) {
+      final msg = (e is DioException)
+          ? (e.response?.data?['message']?.toString() ??
+              e.response?.data?.toString() ??
+              'Not eligible yet')
+          : 'Failed to generate certificate';
+      if (mounted) setState(() { _certError = msg; _generating = false; });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final course = enrolled.course;
-    final totalSessions = sessions?.length ?? 0;
-    final totalAssignments = assignments?.length ?? 0;
-    final doneAssignments = submittedIds.length;
+    final course = widget.enrolled.course;
+    final totalSessions = widget.sessions?.length ?? 0;
+    final totalAssignments = widget.assignments?.length ?? 0;
+    final doneAssignments = widget.submittedIds.length;
+    final assignmentPct = totalAssignments > 0
+        ? (doneAssignments / totalAssignments * 100).round()
+        : 0;
+    final eligible = widget.eligibleFromApi ??
+        (totalAssignments > 0 && assignmentPct >= 80);
 
     final items = [
       if (totalSessions > 0)
         _ProgressItem(
           label: 'Sessions Attended',
-          value: enrolled.attendedSessions,
+          value: widget.enrolled.attendedSessions,
           total: totalSessions,
           color: AppColors.primary,
         ),
       if (totalAssignments > 0)
         _ProgressItem(
-          label: 'Assignments Done',
+          label: 'Assignments Submitted',
           value: doneAssignments,
           total: totalAssignments,
           color: AppColors.success,
         ),
       _ProgressItem(
         label: 'Overall Progress',
-        value: course.progressPercent,
+        value: widget.progressPercent,
         total: 100,
         color: course.color,
         isPercent: true,
@@ -1202,7 +1486,7 @@ class _ProgressTab extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                '${course.progressPercent}%',
+                '${widget.progressPercent}%',
                 style: AppTextTheme.gradeHero
                     .copyWith(color: AppColors.primary),
               ),
@@ -1215,7 +1499,7 @@ class _ProgressTab extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
-                    value: course.progressPercent / 100,
+                    value: widget.progressPercent / 100,
                     minHeight: 10,
                     backgroundColor: context.borderLight,
                     valueColor: AlwaysStoppedAnimation<Color>(
@@ -1269,6 +1553,103 @@ class _ProgressTab extends StatelessWidget {
             ),
           ),
         ),
+
+        const SizedBox(height: 6),
+
+        // Certificate section
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: context.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: eligible
+                  ? AppColors.success.withValues(alpha: 0.4)
+                  : context.borderLight,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.workspace_premium_rounded,
+                    color: eligible ? AppColors.success : context.textSecondary,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Text('Certificate',
+                      style: AppTextTheme.bodySemibold),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Requirement row
+              _RequirementRow(
+                label: 'Submit ≥ 80% of assignments',
+                met: eligible,
+                detail: totalAssignments > 0
+                    ? '$assignmentPct% ($doneAssignments/$totalAssignments)'
+                    : 'No assignments',
+              ),
+              const SizedBox(height: 6),
+              _RequirementRow(
+                label: 'Complete course duration',
+                met: null,
+                detail: 'Checked by server',
+              ),
+              const SizedBox(height: 14),
+              if (_certError != null) ...[
+                Text(
+                  _certError!,
+                  style: AppTextTheme.bodySmall.colored(AppColors.error),
+                ),
+                const SizedBox(height: 10),
+              ],
+              if (_generated)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.check_circle_rounded,
+                          color: AppColors.success, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Certificate generated!',
+                          style: AppTextTheme.bodySemibold
+                              .colored(AppColors.success)),
+                    ],
+                  ),
+                )
+              else
+                FilledButton.icon(
+                  onPressed: _generating ? null : _generateCertificate,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    backgroundColor: eligible
+                        ? AppColors.success
+                        : AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: _generating
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.download_rounded, size: 18),
+                  label: const Text('Get Certificate'),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -1288,6 +1669,44 @@ class _ProgressItem {
     required this.color,
     this.isPercent = false,
   });
+}
+
+class _RequirementRow extends StatelessWidget {
+  const _RequirementRow({
+    required this.label,
+    required this.met,
+    required this.detail,
+  });
+
+  final String label;
+  final bool? met; // null = unknown (server-side check)
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = met == null
+        ? AppColors.warning
+        : met!
+            ? AppColors.success
+            : context.textSecondary;
+    final icon = met == null
+        ? Icons.schedule_rounded
+        : met!
+            ? Icons.check_circle_rounded
+            : Icons.radio_button_unchecked_rounded;
+
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(label, style: AppTextTheme.bodySmall),
+        ),
+        Text(detail,
+            style: AppTextTheme.labelSmall.colored(color)),
+      ],
+    );
+  }
 }
 
 // ─────────────────────────────────────────────
