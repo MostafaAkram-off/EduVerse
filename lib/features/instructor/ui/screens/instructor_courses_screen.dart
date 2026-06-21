@@ -34,8 +34,8 @@ class _InstructorCoursesScreenState
         return Scaffold(
           backgroundColor: context.bg,
           floatingActionButton: state is InstructorLoaded
-              ? FloatingActionButton.extended(
-                  onPressed: () => Navigator.of(context).push(
+              ? _CreateCourseFab(
+                  onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => InstructorCreateCourseScreen(
                         onCreated: () =>
@@ -43,10 +43,6 @@ class _InstructorCoursesScreenState
                       ),
                     ),
                   ),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('New Course'),
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
                 )
               : null,
           body: switch (state) {
@@ -322,4 +318,51 @@ class _CourseCard extends StatelessWidget {
         _                 => Icons.school_rounded,
       };
 
+}
+
+// ── Create Course FAB ──────────────────────────────────────────────────────────
+class _CreateCourseFab extends StatelessWidget {
+  final VoidCallback onTap;
+  const _CreateCourseFab({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4A6CF7), Color(0xFF7C3AED)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4A6CF7).withValues(alpha: 0.45),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add_rounded, color: Colors.white, size: 22),
+            SizedBox(width: 8),
+            Text(
+              'New Course',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
