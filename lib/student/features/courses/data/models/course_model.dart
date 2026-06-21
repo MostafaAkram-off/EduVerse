@@ -18,6 +18,8 @@ class CourseModel {
   final List<String> whatYouLearn;
   final List<String> modules;
   final String? imageUrl;
+  final String instructorBio;
+  final String? instructorPhotoUrl;
 
   const CourseModel({
     required this.id,
@@ -37,6 +39,8 @@ class CourseModel {
     this.whatYouLearn = const [],
     this.modules = const [],
     this.imageUrl,
+    this.instructorBio = '',
+    this.instructorPhotoUrl,
   });
 
   factory CourseModel.fromJson(Map<String, dynamic> json) {
@@ -47,6 +51,16 @@ class CourseModel {
         [];
     final category = cats.isNotEmpty ? cats.first : 'General';
     final durationHours = (json['duration'] as num?)?.toDouble() ?? 0.0;
+
+    final instructorBio = json['instructorBio'] as String? ??
+        json['instructorDescription'] as String? ??
+        json['trainerBio'] as String? ??
+        '';
+
+    final instructorPhotoUrl = json['instructorPhotoUrl'] as String? ??
+        json['instructorPhoto'] as String? ??
+        json['trainerPhoto'] as String? ??
+        json['trainerPhotoUrl'] as String?;
 
     return CourseModel(
       id:           json['id'] as String? ?? '',
@@ -69,6 +83,8 @@ class CourseModel {
         'whatYouLearn', 'what_you_learn', 'learningOutcomes',
         'objectives', 'outcomes', 'skills', 'whatWillYouLearn',
       ]),
+      instructorBio:      instructorBio,
+      instructorPhotoUrl: instructorPhotoUrl,
     );
   }
 
@@ -103,6 +119,7 @@ class CourseModel {
       isEnrolled: isEnrolled ?? this.isEnrolled,
       color: color, description: description,
       whatYouLearn: whatYouLearn, modules: modules, imageUrl: imageUrl,
+      instructorBio: instructorBio, instructorPhotoUrl: instructorPhotoUrl,
     );
   }
 

@@ -222,57 +222,22 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           )),
                           const SizedBox(height: 24),
 
-                          // Divider + social + sign up
-                          _animated(4, Column(
-                            children: [
-                              Row(
-                                children: [
-                                  const Expanded(child: Divider()),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    child: Text(l10n.orContinueWith, style: AppTextTheme.labelMedium),
+                          // Sign up link
+                          _animated(4, Center(
+                            child: GestureDetector(
+                              onTap: () => context.push(AppRoutes.register),
+                              child: RichText(
+                                text: TextSpan(
+                                  text: '${l10n.noAccount} ',
+                                  style: AppTextTheme.bodyMedium.copyWith(
+                                    color: context.textSecondary,
                                   ),
-                                  const Expanded(child: Divider()),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(child: _SocialButton(
-                                    label: 'Google',
-                                    icon: Icons.g_mobiledata_rounded,
-                                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Google login coming soon'), behavior: SnackBarBehavior.floating),
-                                    ),
-                                  )),
-                                  const SizedBox(width: 12),
-                                  Expanded(child: _SocialButton(
-                                    label: 'Apple',
-                                    icon: Icons.apple,
-                                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Apple login coming soon'), behavior: SnackBarBehavior.floating),
-                                    ),
-                                  )),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-                              Center(
-                                child: GestureDetector(
-                                  onTap: () => context.push(AppRoutes.register),
-                                  child: RichText(
-                                    text: TextSpan(
-                                      text: '${l10n.noAccount} ',
-                                      style: AppTextTheme.bodyMedium.copyWith(
-                                        color: context.textSecondary,
-                                      ),
-                                      children: [
-                                        TextSpan(text: l10n.signUp, style: AppTextTheme.link),
-                                      ],
-                                    ),
-                                  ),
+                                  children: [
+                                    TextSpan(text: l10n.signUp, style: AppTextTheme.link),
+                                  ],
                                 ),
                               ),
-                            ],
+                            ),
                           )),
                         ],
                       ),
@@ -284,28 +249,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           ),
         );
       },
-    );
-  }
-}
-
-class _SocialButton extends StatelessWidget {
-  const _SocialButton({required this.label, required this.icon, required this.onPressed});
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 20, color: context.textPrimary),
-      label: Text(label, style: AppTextTheme.buttonSmall.copyWith(color: context.textPrimary)),
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: context.border),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(vertical: 14),
-      ),
     );
   }
 }

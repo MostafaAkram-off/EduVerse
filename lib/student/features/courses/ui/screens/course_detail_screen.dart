@@ -749,7 +749,7 @@ class _InstructorTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = course.instructor.isNotEmpty ? course.instructor : course.title;
+    final name = course.instructor.isNotEmpty ? course.instructor : 'Instructor';
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -757,8 +757,8 @@ class _InstructorTab extends StatelessWidget {
         Row(
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
@@ -769,27 +769,39 @@ class _InstructorTab extends StatelessWidget {
                 child: Text(
                   initial,
                   style: const TextStyle(
-                      color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700),
+                      color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700),
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(name,
-                      style: AppTextTheme.displaySmall.copyWith(fontSize: 16)),
-                  const SizedBox(height: 3),
+                      style: AppTextTheme.displaySmall.copyWith(fontSize: 17)),
+                  const SizedBox(height: 4),
                   Text('Course Instructor', style: AppTextTheme.bodySmall),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
+                    runSpacing: 6,
                     children: [
-                      _SmallBadge(
-                          text: '${course.rating} ★',
-                          bg: AppColors.warning.withValues(alpha: 0.12),
-                          fg: AppColors.warning),
+                      if (course.rating > 0)
+                        _SmallBadge(
+                            text: '${course.rating} ★',
+                            bg: AppColors.warning.withValues(alpha: 0.12),
+                            fg: AppColors.warning),
+                      if (course.studentsCount > 0)
+                        _SmallBadge(
+                            text: '${course.studentsCount} students',
+                            bg: AppColors.primary.withValues(alpha: 0.10),
+                            fg: AppColors.primary),
+                      if (course.reviewsCount > 0)
+                        _SmallBadge(
+                            text: '${course.reviewsCount} reviews',
+                            bg: AppColors.success.withValues(alpha: 0.10),
+                            fg: AppColors.success),
                     ],
                   ),
                 ],
@@ -797,11 +809,59 @@ class _InstructorTab extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 20),
-        Text(
-          'Instructor information is not available yet.',
-          style: AppTextTheme.bodyMedium
-              .copyWith(color: context.textSecondary, height: 1.7),
+        const SizedBox(height: 24),
+        if (course.instructorBio.isNotEmpty) ...[
+          Text('About the Instructor',
+              style: AppTextTheme.displaySmall.copyWith(fontSize: 15)),
+          const SizedBox(height: 10),
+          Text(
+            course.instructorBio,
+            style: AppTextTheme.bodyMedium
+                .copyWith(color: context.textSecondary, height: 1.7),
+          ),
+          const SizedBox(height: 20),
+        ],
+        Text('Teaches', style: AppTextTheme.displaySmall.copyWith(fontSize: 15)),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: course.color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: course.color.withValues(alpha: 0.18)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: course.color.withValues(alpha: 0.15),
+                ),
+                child: Icon(Icons.menu_book_rounded,
+                    color: course.color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(course.title,
+                        style: AppTextTheme.bodySemibold,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis),
+                    if (course.level.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(course.level,
+                          style: AppTextTheme.bodySmall
+                              .copyWith(color: context.textSecondary)),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );

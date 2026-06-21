@@ -20,6 +20,7 @@ class HomeCubit extends Cubit<HomeState> {
         dio.get<dynamic>(ApiEndpoints.myEnrolledCourses),
         recommendationsApi.getForMe(),
         dio.get<dynamic>(ApiEndpoints.myNotifications).catchError((_) => Response<dynamic>(requestOptions: RequestOptions(), statusCode: 200, data: [])),
+        recommendationsApi.getTrending().catchError((_) => Response<dynamic>(requestOptions: RequestOptions(), statusCode: 200, data: [])),
       ]);
 
       // Parse enrolled courses
@@ -89,10 +90,28 @@ class HomeCubit extends Cubit<HomeState> {
             .length;
       } catch (_) {}
 
+      // Parse trending courses (non-fatal)
+      final trendingCourses = <CourseModel>[];
+      try {
+        final trendRaw = results[3].data;
+        final trendList = trendRaw is List
+            ? trendRaw
+            : trendRaw is Map
+                ? ((trendRaw['data'] ?? trendRaw['courses'] ?? trendRaw['recommendations'] ?? []) as List)
+                : <dynamic>[];
+        trendingCourses.addAll(
+          trendList
+              .map((e) => CourseModel.fromJson(e as Map<String, dynamic>))
+              .where((c) => c.id.isNotEmpty)
+              .take(10),
+        );
+      } catch (_) {}
+
       emit(HomeLoaded(
         enrolledCourses: enrolledCourses,
         upcomingSessions: const [],
         recommendedCourses: recommendations,
+        trendingCourses: trendingCourses,
         completedCourses: completedCount,
         totalHours: totalHoursAccum.round(),
         unreadNotifications: unreadCount,

@@ -122,4 +122,13 @@ abstract final class ApiEndpoints {
   static const String recommendationsTrending   = '/Recommendation/Trending';
   static String recommendationsSimilar(String courseId) =>
       '/Recommendation/Similar/$courseId';
+
+  // ── Category ──────────────────────────────────────────────
+  static const String getAllCategories           = '/Category/GetAll';
+  static String getCategoryById(String id)       => '/Category/GetById/$id';
+  static String getCategoryByName(String name)   => '/Category/GetByName/$name';
+
+  // ── Health ────────────────────────────────────────────────
+  static const String healthPing = '/health/ping';
+  static const String healthDb   = '/health/db';
 }

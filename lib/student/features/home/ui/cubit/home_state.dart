@@ -10,6 +10,7 @@ class HomeLoaded extends HomeState {
   final List<CourseModel> enrolledCourses;
   final List<Map<String, dynamic>> upcomingSessions;
   final List<CourseModel> recommendedCourses;
+  final List<CourseModel> trendingCourses;
   final int completedCourses;
   final int totalHours;
   final int unreadNotifications;
@@ -18,6 +19,7 @@ class HomeLoaded extends HomeState {
     required this.enrolledCourses,
     required this.upcomingSessions,
     required this.recommendedCourses,
+    this.trendingCourses = const [],
     required this.completedCourses,
     required this.totalHours,
     this.unreadNotifications = 0,

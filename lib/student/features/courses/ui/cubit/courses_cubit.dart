@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:edu_verse/core/constants/api_endpoints.dart';
@@ -9,6 +10,7 @@ class CoursesCubit extends Cubit<CoursesState> {
   CoursesCubit(this._dio) : super(CoursesInitial());
 
   final Dio _dio;
+  Timer? _searchTimer;
 
   Future<void> loadCourses() async {
     emit(CoursesLoading());
@@ -57,9 +59,47 @@ class CoursesCubit extends Cubit<CoursesState> {
   }
 
   void search(String query) {
-    final current = state as CoursesLoaded;
-    final filtered = _applyFilters(current.allCourses, current.selectedCategory, query, current.selectedLevel);
-    emit(current.copyWith(filteredCourses: filtered, searchQuery: query));
+    _searchTimer?.cancel();
+    final current = state;
+    if (current is! CoursesLoaded) return;
+
+    if (query.isEmpty) {
+      // Reset to all courses with active filters
+      final filtered = _applyFilters(
+          current.allCourses, current.selectedCategory, '', current.selectedLevel);
+      emit(current.copyWith(filteredCourses: filtered, searchQuery: ''));
+      return;
+    }
+
+    // Immediate local filter for instant feedback
+    final localFiltered = _applyFilters(
+        current.allCourses, current.selectedCategory, query, current.selectedLevel);
+    emit(current.copyWith(filteredCourses: localFiltered, searchQuery: query));
+
+    // Debounce API search — replaces local results after 600ms
+    _searchTimer = Timer(const Duration(milliseconds: 600), () async {
+      try {
+        final res = await _dio.get<dynamic>(ApiEndpoints.searchCourses(query));
+        final raw = res.data;
+        final list = raw is List
+            ? raw
+            : raw is Map
+                ? ((raw['data'] ?? raw['courses'] ?? <dynamic>[]) as List)
+                : <dynamic>[];
+        final apiCourses = list
+            .map((e) => CourseModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+        if (state is CoursesLoaded &&
+            (state as CoursesLoaded).searchQuery == query) {
+          emit((state as CoursesLoaded).copyWith(
+            filteredCourses: apiCourses,
+            searchQuery: query,
+          ));
+        }
+      } catch (_) {
+        // Keep local filter result on network error
+      }
+    });
   }
 
   Future<void> loadForYou() async {
@@ -96,6 +136,12 @@ class CoursesCubit extends Cubit<CoursesState> {
         ));
       }
     }
+  }
+
+  @override
+  Future<void> close() {
+    _searchTimer?.cancel();
+    return super.close();
   }
 
   List<CourseModel> _applyFilters(

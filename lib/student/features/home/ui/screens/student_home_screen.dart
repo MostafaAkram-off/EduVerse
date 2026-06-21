@@ -265,6 +265,44 @@ class _HomeContent extends StatelessWidget {
             ),
           ),
 
+          // ── Trending courses ──────────────────
+          if (state.trendingCourses.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 28, 20, 10),
+                child: _SectionHeader(
+                  title: 'Trending Now',
+                  onSeeAll: () => onSwitchTab?.call(1),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: (90 + 130 * MediaQuery.textScalerOf(context).scale(1.0)).clamp(220.0, 290.0),
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: state.trendingCourses.length,
+                  itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.only(right: 14),
+                    child: _RecommendedCard(
+                      course: state.trendingCourses[index],
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => CourseDetailScreen(
+                              course: state.trendingCourses[index],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
