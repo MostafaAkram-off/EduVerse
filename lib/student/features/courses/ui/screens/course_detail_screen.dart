@@ -68,12 +68,17 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   CourseModel? _detailedCourse;
+  bool _isEnrolled = false;
+  int _progressPercent = 0;
 
   @override
   void initState() {
     super.initState();
+    _isEnrolled = widget.course.isEnrolled;
+    _progressPercent = widget.course.progressPercent;
     _tabController = TabController(length: 4, vsync: this);
     _fetchDetails();
+    if (!_isEnrolled) _checkEnrollment();
   }
 
   Future<void> _fetchDetails() async {
@@ -86,9 +91,36 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           ? data
           : (data is Map ? Map<String, dynamic>.from(data) : null);
       if (json != null && mounted) {
-        setState(() => _detailedCourse = CourseModel.fromJson(json));
+        setState(() => _detailedCourse = CourseModel.fromJson(json).copyWith(
+          isEnrolled: _isEnrolled,
+          progressPercent: _progressPercent,
+        ));
       }
     } catch (_) {}
+  }
+
+  Future<void> _checkEnrollment() async {
+    try {
+      final dio = GetIt.instance<Dio>();
+      final res = await dio.get<dynamic>(
+          ApiEndpoints.myEnrollment(widget.course.id));
+      final data = res.data;
+      if (data != null && mounted) {
+        final progress = (data is Map)
+            ? ((data['progressPercent'] ?? data['progress'] ?? 0) as num).toInt()
+            : 0;
+        setState(() {
+          _isEnrolled = true;
+          _progressPercent = progress;
+          if (_detailedCourse != null) {
+            _detailedCourse = _detailedCourse!
+                .copyWith(isEnrolled: true, progressPercent: progress);
+          }
+        });
+      }
+    } catch (_) {
+      // 404 means not enrolled — keep _isEnrolled = false
+    }
   }
 
   @override
@@ -97,7 +129,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     super.dispose();
   }
 
-  CourseModel get course => _detailedCourse ?? widget.course;
+  CourseModel get course => (_detailedCourse ?? widget.course).copyWith(
+        isEnrolled: _isEnrolled,
+        progressPercent: _progressPercent,
+      );
 
   @override
   Widget build(BuildContext context) {

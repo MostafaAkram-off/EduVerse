@@ -240,152 +240,230 @@ class CertificateDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Certificate card — matches the server PDF design (white + blue + orange)
           Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [item.color, item.color.withValues(alpha: 0.8)],
-              ),
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFF1A237E).withValues(alpha: 0.18), width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: item.color.withValues(alpha: 0.35),
-                  blurRadius: 28,
-                  offset: const Offset(0, 12),
+                  color: const Color(0xFF1A237E).withValues(alpha: 0.12),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
-            child: Stack(
+            child: Column(
               children: [
-                Positioned(
-                  bottom: 12,
-                  right: 12,
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                      ),
-                    ),
-                    child: const Icon(Icons.star_rounded,
-                        color: Colors.white, size: 28),
+                // Top bar — dark navy
+                Container(
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+                    color: Color(0xFF1A237E),
                   ),
                 ),
+                // Orange corner accents row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 28, height: 12,
+                      color: const Color(0xFFF59E0B),
+                    ),
+                    Container(
+                      width: 28, height: 12,
+                      color: const Color(0xFFF59E0B),
+                    ),
+                  ],
+                ),
+                // Body
                 Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Logo + title
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 36,
+                            height: 36,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.25),
-                              borderRadius: BorderRadius.circular(12),
+                              color: const Color(0xFF1A237E).withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(Icons.school_rounded,
-                                color: Colors.white, size: 22),
+                                color: Color(0xFF1A237E), size: 20),
                           ),
                           const SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'EDUVERSE',
-                                style: AppTextTheme.badgeSm.copyWith(
-                                  color: Colors.white70,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                              Text(
-                                'Training Center',
-                                style: AppTextTheme.bodySmall
-                                    .copyWith(color: Colors.white70),
-                              ),
-                            ],
+                          const Text(
+                            'EduVerse',
+                            style: TextStyle(
+                              color: Color(0xFF1A237E),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 20,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
-                      Text(
+                      const SizedBox(height: 14),
+                      const Text(
                         'CERTIFICATE OF COMPLETION',
-                        style: AppTextTheme.badgeSm.copyWith(
-                          color: Colors.white70,
-                          letterSpacing: 1.4,
-                          fontSize: 10,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'This certifies that',
-                        style: AppTextTheme.timestamp.copyWith(color: Colors.white70),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        studentName,
-                        style: AppTextTheme.displayLarge.copyWith(
-                          color: Colors.white,
-                          fontSize: 24,
+                        style: TextStyle(
+                          color: Color(0xFF1A237E),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          letterSpacing: 2,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'has successfully completed',
-                        style: AppTextTheme.timestamp.copyWith(color: Colors.white70),
+                        'This certificate is proudly presented to',
+                        style: AppTextTheme.bodySmall.copyWith(
+                            color: Colors.black54, fontSize: 11),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Color(0xFFF59E0B), width: 2),
+                          ),
+                        ),
+                        child: Text(
+                          studentName,
+                          style: const TextStyle(
+                            color: Color(0xFF1A237E),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 22,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'for successfully completing the course',
+                        style: AppTextTheme.bodySmall.copyWith(
+                            color: Colors.black54, fontSize: 11),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         item.title,
-                        style: AppTextTheme.displaySmall.copyWith(
-                          color: Colors.white,
-                          fontSize: 18,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
                         ),
+                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 20),
+                      if (item.instructor.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Presented by ${item.instructor}',
+                          style: AppTextTheme.bodySmall
+                              .copyWith(color: Colors.black45, fontSize: 11),
+                        ),
+                      ],
+                      const SizedBox(height: 18),
+                      const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                      const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          if (item.instructor.isNotEmpty)
+                          if (item.date.isNotEmpty)
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Instructor',
-                                  style: AppTextTheme.timestamp
-                                      .copyWith(color: Colors.white60),
+                                const Text(
+                                  'ISSUE DATE',
+                                  style: TextStyle(
+                                    color: Colors.black45,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.8,
+                                  ),
                                 ),
+                                const SizedBox(height: 2),
                                 Text(
-                                  item.instructor,
-                                  style: AppTextTheme.bodySemibold
-                                      .copyWith(color: Colors.white),
+                                  item.date,
+                                  style: const TextStyle(
+                                    color: Color(0xFF1A237E),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ],
                             ),
-                          if (item.date.isNotEmpty)
+                          Column(
+                            children: [
+                              const Text(
+                                'EduVerse Academic Team',
+                                style: TextStyle(
+                                  color: Color(0xFF1A237E),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const Text(
+                                'Learning without limits',
+                                style: TextStyle(
+                                  color: Colors.black38,
+                                  fontSize: 8,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (item.id.isNotEmpty)
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text(
-                                  'Issue Date',
-                                  style: AppTextTheme.timestamp
-                                      .copyWith(color: Colors.white60),
+                                const Text(
+                                  'CERTIFICATE CODE',
+                                  style: TextStyle(
+                                    color: Colors.black45,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.8,
+                                  ),
                                 ),
+                                const SizedBox(height: 2),
                                 Text(
-                                  item.date,
-                                  style: AppTextTheme.bodySemibold
-                                      .copyWith(color: Colors.white),
+                                  'EDU-${item.id.substring(0, 8).toUpperCase()}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF1A237E),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ],
                             ),
                         ],
                       ),
                     ],
+                  ),
+                ),
+                // Orange corner accents bottom
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 28, height: 12,
+                      color: const Color(0xFFF59E0B),
+                    ),
+                    Container(
+                      width: 28, height: 12,
+                      color: const Color(0xFFF59E0B),
+                    ),
+                  ],
+                ),
+                // Bottom bar — dark navy
+                Container(
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(14)),
+                    color: Color(0xFF1A237E),
                   ),
                 ),
               ],
