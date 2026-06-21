@@ -67,11 +67,28 @@ class CourseDetailScreen extends StatefulWidget {
 class _CourseDetailScreenState extends State<CourseDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  CourseModel? _detailedCourse;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _fetchDetails();
+  }
+
+  Future<void> _fetchDetails() async {
+    try {
+      final dio = GetIt.instance<Dio>();
+      final res = await dio.get<dynamic>(
+          ApiEndpoints.getCourseById(widget.course.id));
+      final data = res.data;
+      final json = data is Map<String, dynamic>
+          ? data
+          : (data is Map ? Map<String, dynamic>.from(data) : null);
+      if (json != null && mounted) {
+        setState(() => _detailedCourse = CourseModel.fromJson(json));
+      }
+    } catch (_) {}
   }
 
   @override
@@ -80,7 +97,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     super.dispose();
   }
 
-  CourseModel get course => widget.course;
+  CourseModel get course => _detailedCourse ?? widget.course;
 
   @override
   Widget build(BuildContext context) {
@@ -100,6 +117,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 const SizedBox(height: 16),
                 TabBar(
                   controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
                   tabs: const [
                     Tab(text: 'About'),
                     Tab(text: 'Curriculum'),

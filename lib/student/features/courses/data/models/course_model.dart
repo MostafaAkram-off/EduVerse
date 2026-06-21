@@ -65,7 +65,33 @@ class CourseModel {
       imageUrl:     json['imageUrl'] as String?,
       color:        _categoryColor(category),
       description:  json['description'] as String? ?? '',
+      whatYouLearn: _parseStringList(json, const [
+        'whatYouLearn', 'what_you_learn', 'learningOutcomes',
+        'objectives', 'outcomes', 'skills', 'whatWillYouLearn',
+      ]),
     );
+  }
+
+  static List<String> _parseStringList(
+      Map<String, dynamic> json, List<String> keys) {
+    for (final key in keys) {
+      final val = json[key];
+      if (val is List && val.isNotEmpty) {
+        final items = val
+            .map((e) => e?.toString().trim() ?? '')
+            .where((s) => s.isNotEmpty)
+            .toList();
+        if (items.isNotEmpty) return items;
+      }
+      if (val is String && val.trim().isNotEmpty) {
+        return val
+            .split(',')
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+      }
+    }
+    return const [];
   }
 
   CourseModel copyWith({bool? isEnrolled, int? progressPercent}) {

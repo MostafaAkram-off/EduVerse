@@ -26,6 +26,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   late final VideoController _controller;
   StreamSubscription<String>? _errorSub;
   String? _error;
+  double _speed = 1.0;
+
+  static const _speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
   @override
   void initState() {
@@ -44,8 +47,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       if (mounted && err.isNotEmpty) setState(() => _error = err);
     });
 
-    // Wait for the Video widget surface to be mounted before opening media,
-    // otherwise the video decodes but frames have nowhere to render (black screen).
     WidgetsBinding.instance.addPostFrameCallback((_) => _setup());
   }
 
@@ -55,15 +56,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     try {
       final dio = GetIt.instance<Dio>();
-
-      // Hit /Cloud/GetSas/ to get a time-limited Azure SAS URL.
-      // SAS URLs are served directly by Azure Blob with native Range Request
-      // support, so seeking works without any extra MPV configuration.
       final sasPath = widget.url.replaceFirst('/Cloud/Get/', '/Cloud/GetSas/');
       final res = await dio.get<dynamic>(sasPath);
       final data = res.data;
 
-      // Backend may return the SAS URL as a plain string or wrapped in JSON.
       String? sasUrl;
       if (data is String && data.trim().isNotEmpty) {
         sasUrl = data.trim();
@@ -76,12 +72,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         throw Exception('No SAS URL returned from server');
       }
 
-      // Give the native surface (Flutter Texture) a moment to attach
-      // before opening media, to avoid a black first frame.
       await Future.delayed(const Duration(milliseconds: 200));
       if (!mounted) return;
 
-      // SAS URL carries the auth signature in its query params — no Bearer header needed.
       await _player.open(Media(sasUrl));
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
@@ -92,6 +85,43 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     setState(() => _error = null);
     _setup();
   }
+
+  void _seek(int seconds) {
+    final pos = _player.state.position;
+    final next = pos + Duration(seconds: seconds);
+    _player.seek(next.isNegative ? Duration.zero : next);
+  }
+
+  void _setSpeed(double speed) {
+    _player.setRate(speed);
+    setState(() => _speed = speed);
+  }
+
+  String get _speedLabel {
+    final s = _speed;
+    return s == s.truncateToDouble() ? '${s.toInt()}x' : '${s}x';
+  }
+
+  MaterialVideoControlsThemeData get _controlsTheme =>
+      MaterialVideoControlsThemeData(
+        seekOnDoubleTap: true,
+        seekOnDoubleTapBackwardDuration: const Duration(seconds: 10),
+        seekOnDoubleTapForwardDuration: const Duration(seconds: 10),
+        bottomButtonBar: [
+          const MaterialPlayOrPauseButton(),
+          MaterialCustomButton(
+            onPressed: () => _seek(-10),
+            icon: const Icon(Icons.replay_10_rounded, color: Colors.white),
+          ),
+          MaterialCustomButton(
+            onPressed: () => _seek(10),
+            icon: const Icon(Icons.forward_10_rounded, color: Colors.white),
+          ),
+          const MaterialPositionIndicator(),
+          const Spacer(),
+          const MaterialFullscreenButton(),
+        ],
+      );
 
   @override
   void dispose() {
@@ -121,15 +151,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.25),
-                ),
+                border:
+                    Border.all(color: Colors.white.withValues(alpha: 0.25)),
               ),
-              child: const Icon(
-                Icons.arrow_back_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: const Icon(Icons.arrow_back_rounded,
+                  color: Colors.white, size: 20),
             ),
           ),
         ),
@@ -139,14 +165,74 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+        actions: [
+          PopupMenuButton<double>(
+            initialValue: _speed,
+            onSelected: _setSpeed,
+            color: const Color(0xFF1E1E1E),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            itemBuilder: (_) => _speeds
+                .map((s) => PopupMenuItem<double>(
+                      value: s,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            s == s.truncateToDouble()
+                                ? '${s.toInt()}x'
+                                : '${s}x',
+                            style: TextStyle(
+                              color: s == _speed
+                                  ? const Color(0xFF4A6CF7)
+                                  : Colors.white,
+                              fontWeight: s == _speed
+                                  ? FontWeight.w700
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          if (s == _speed)
+                            const Icon(Icons.check_rounded,
+                                size: 16, color: Color(0xFF4A6CF7)),
+                        ],
+                      ),
+                    ))
+                .toList(),
+            child: Container(
+              margin: const EdgeInsets.only(right: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.25)),
+              ),
+              child: Text(
+                _speedLabel,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        ],
         systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Video(controller: _controller, controls: MaterialVideoControls),
-          if (_error != null)
-            _ErrorBody(message: _error!, onRetry: _retry),
+          MaterialVideoControlsTheme(
+            normal: _controlsTheme,
+            fullscreen: _controlsTheme,
+            child: Video(
+              controller: _controller,
+              controls: MaterialVideoControls,
+            ),
+          ),
+          if (_error != null) _ErrorBody(message: _error!, onRetry: _retry),
         ],
       ),
     );
