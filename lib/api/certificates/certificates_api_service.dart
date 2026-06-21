@@ -23,4 +23,10 @@ class CertificatesApiService {
 
   Future<Response<dynamic>> addCertificate(FormData formData) =>
       _dio.post(ApiEndpoints.addCertificate, data: formData);
+
+  Future<Response<List<int>>> downloadCertificate(String certificateId) =>
+      _dio.get<List<int>>(
+        ApiEndpoints.downloadCertificate(certificateId),
+        options: Options(responseType: ResponseType.bytes),
+      );
 }

@@ -83,6 +83,7 @@ abstract final class ApiEndpoints {
   static String generateCertificate(String courseId)   => '/Certificate/Generate/$courseId';
   static String certificateEligibility(String courseId) => '/Certificate/Eligibility/$courseId';
   static String verifyCertificate(String code)         => '/Certificate/Verify/$code';
+  static String downloadCertificate(String certificateId) => '/Certificate/Download/$certificateId';
   static String userCertificates(String email)       => '/User/usercertificates/$email';
   static String myCertificate(String courseId)       => '/User/my-certificate/$courseId';
   static String certificateFile(String courseId, String email) =>

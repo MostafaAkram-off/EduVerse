@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:edu_verse/api/certificates/certificates_api_service.dart';
 import 'package:edu_verse/core/preferences/app_preferences.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
@@ -454,10 +458,24 @@ class _DownloadPdfButtonState extends State<_DownloadPdfButton> {
   Future<void> _download() async {
     setState(() => _generating = true);
     try {
-      await _generateAndSharePdf(widget.item, widget.studentName);
-    } finally {
-      if (mounted) setState(() => _generating = false);
+      // Try server-generated certificate first
+      if (widget.item.id.isNotEmpty) {
+        final api = GetIt.instance<CertificatesApiService>();
+        final res = await api.downloadCertificate(widget.item.id);
+        final bytes = res.data;
+        if (bytes != null && bytes.isNotEmpty) {
+          await Printing.sharePdf(
+            bytes: Uint8List.fromList(bytes),
+            filename: 'EduVerse_Certificate_${widget.item.title.replaceAll(' ', '_')}.pdf',
+          );
+          return;
+        }
+      }
+    } catch (_) {
+      // Server certificate not available — fall through to local generation
     }
+    // Fallback: generate PDF locally
+    await _generateAndSharePdf(widget.item, widget.studentName);
   }
 
   @override
@@ -470,7 +488,7 @@ class _DownloadPdfButtonState extends State<_DownloadPdfButton> {
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             )
           : const Icon(Icons.download_rounded, size: 20),
-      label: Text(_generating ? 'Generating...' : 'Download PDF'),
+      label: Text(_generating ? 'Downloading...' : 'Download Certificate'),
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
