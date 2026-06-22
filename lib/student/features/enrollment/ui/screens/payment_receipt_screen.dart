@@ -99,7 +99,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                           child: pw.Text('PAYMENT CONFIRMED', style: pw.TextStyle(color: success, fontSize: 10, fontWeight: pw.FontWeight.bold, letterSpacing: 1)),
                         ),
                         pw.SizedBox(height: 20),
-                        pw.Text('\$${widget.totalPaid.toStringAsFixed(0)}',
+                        pw.Text('${widget.totalPaid.toStringAsFixed(0)} EGP',
                             style: pw.TextStyle(color: primary, fontSize: 36, fontWeight: pw.FontWeight.bold)),
                         pw.SizedBox(height: 6),
                         pw.Text('Total amount paid', style: pw.TextStyle(color: grey, fontSize: 12)),
@@ -108,7 +108,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                         pw.SizedBox(height: 20),
                         _pdfRow('Receipt No.', _receiptId),
                         _pdfRow('Course', widget.course.title),
-                        _pdfRow('Amount Paid', '\$${widget.totalPaid.toStringAsFixed(0)}'),
+                        _pdfRow('Amount Paid', '${widget.totalPaid.toStringAsFixed(0)} EGP'),
                         _pdfRow('Payment Date', _todayLabel),
                         _pdfRow('Method', widget.paymentMethod),
                         _pdfRow('Status', 'Confirmed'),
@@ -218,7 +218,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                       const SizedBox(height: 8),
                       _Line('Receipt No.', _receiptId),
                       _Line('Course', widget.course.title),
-                      _Line('Amount Paid', '\$${widget.totalPaid.toStringAsFixed(0)}'),
+                      _Line('Amount Paid', '${widget.totalPaid.toStringAsFixed(0)} EGP'),
                       _Line('Payment Date', _todayLabel),
                       _Line('Method', widget.paymentMethod),
                       _Line(
@@ -258,7 +258,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                           final text =
                               'EduVerse Receipt\n'
                               'Course: ${widget.course.title}\n'
-                              'Amount: \$${widget.totalPaid.toStringAsFixed(0)}\n'
+                              'Amount: ${widget.totalPaid.toStringAsFixed(0)} EGP\n'
                               'Method: ${widget.paymentMethod}\n'
                               'Date: $_todayLabel\n'
                               'Receipt: $_receiptId';

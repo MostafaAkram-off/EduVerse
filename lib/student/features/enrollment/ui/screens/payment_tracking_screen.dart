@@ -237,7 +237,7 @@ class _PaymentTrackingScreenState extends State<PaymentTrackingScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '\$${totalPaid.toStringAsFixed(0)}',
+                  '${totalPaid.toStringAsFixed(0)} EGP',
                   style: AppTextTheme.displayLarge.copyWith(
                     color: Colors.white,
                     fontSize: 34,
@@ -247,7 +247,7 @@ class _PaymentTrackingScreenState extends State<PaymentTrackingScreen> {
                 Row(
                   children: [
                     _BannerStat(
-                      value: '\$${due.toStringAsFixed(0)}',
+                      value: '${due.toStringAsFixed(0)} EGP',
                       label: 'Upcoming due',
                     ),
                     _VertDivider(),
@@ -375,7 +375,7 @@ class _PaymentTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '\$${item.amount.toStringAsFixed(0)}',
+                '${item.amount.toStringAsFixed(0)} EGP',
                 style: AppTextTheme.bodySemibold.copyWith(fontSize: 15),
               ),
               const SizedBox(height: 4),
