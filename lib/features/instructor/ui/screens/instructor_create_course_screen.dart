@@ -156,7 +156,7 @@ class _InstructorCreateCourseScreenState
               children: [
                 Expanded(
                   child: _Field(
-                    label: 'Price (USD)',
+                    label: 'Price (EGP)',
                     controller: _priceCtrl,
                     hint: '0.00',
                     keyboardType: const TextInputType.numberWithOptions(

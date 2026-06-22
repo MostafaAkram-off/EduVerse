@@ -328,10 +328,10 @@ class _SelectBody extends StatelessWidget {
                             .copyWith(fontSize: 15)),
                     const SizedBox(height: 10),
                     _RowLine('Course Price',
-                        '\$${course.price.toStringAsFixed(0)}'),
+                        '${course.price.toStringAsFixed(0)} EGP'),
                     _RowLine(
                       'Discount (10%)',
-                      '-\$${discount.toStringAsFixed(0)}',
+                      '-${discount.toStringAsFixed(0)} EGP',
                       valueColor: AppColors.success,
                     ),
                     Divider(height: 24, color: context.borderLight),
@@ -341,7 +341,7 @@ class _SelectBody extends StatelessWidget {
                         Text('Total',
                             style: AppTextTheme.displaySmall
                                 .copyWith(fontSize: 15)),
-                        Text('\$${total.toStringAsFixed(0)}',
+                        Text('${total.toStringAsFixed(0)} EGP',
                             style: AppTextTheme.price
                                 .copyWith(fontSize: 18)),
                       ],

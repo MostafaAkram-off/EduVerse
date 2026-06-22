@@ -1085,7 +1085,7 @@ class _RecommendedCard extends StatelessWidget {
                           style: AppTextTheme.bodySmall
                               .copyWith(fontWeight: FontWeight.w600)),
                       const Spacer(),
-                      Text('\$${course.price.toInt()}',
+                      Text('${course.price.toInt()} EGP',
                           style: AppTextTheme.labelMedium
                               .colored(AppColors.primary)),
                     ],
@@ -1144,7 +1144,7 @@ class _BottomAction extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text('\$${course.price.toInt()}',
+          Text('${course.price.toInt()} EGP',
               style: AppTextTheme.price),
           const SizedBox(width: 16),
           Expanded(
