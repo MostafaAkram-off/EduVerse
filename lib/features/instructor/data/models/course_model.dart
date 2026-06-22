@@ -14,6 +14,7 @@ class CourseModel {
     required this.coverGradient,
     required this.createdAt,
     this.completionRate = 0,
+    this.imageUrl,
   });
 
   final String id;
@@ -26,6 +27,7 @@ class CourseModel {
   final List<Color> coverGradient;
   final DateTime createdAt;
   final double completionRate; // 0.0–1.0
+  final String? imageUrl;
 
   String get statusLabel =>
       status == CourseStatus.active ? 'Active' : 'Draft';
@@ -68,6 +70,7 @@ class CourseModel {
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
       completionRate: completionRate,
+      imageUrl: json['imageUrl'] as String?,
     );
   }
 

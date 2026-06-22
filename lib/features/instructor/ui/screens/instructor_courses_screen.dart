@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
@@ -191,64 +192,53 @@ class _CourseCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Cover gradient ─────────────────────────
-            Container(
-              height: 100,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: course.coverGradient,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // Pattern overlay
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: 0.08,
-                      child: GridView.count(
-                        crossAxisCount: 6,
-                        children: List.generate(
-                          24,
-                          (_) => const Icon(
-                            Icons.circle,
-                            color: Colors.white,
-                            size: 6,
-                          ),
+            // ── Cover ──────────────────────────────────
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+              child: SizedBox(
+                height: 100,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Background: image or gradient
+                    if (course.imageUrl != null && course.imageUrl!.isNotEmpty)
+                      CachedNetworkImage(
+                        imageUrl: course.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => _InstructorCoverGradient(course: course),
+                        placeholder: (_, __) => _InstructorCoverGradient(course: course),
+                      )
+                    else
+                      _InstructorCoverGradient(course: course),
+                    // Status badge
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: AppBadge(
+                        label: course.statusLabel,
+                        type: isActive ? BadgeType.active : BadgeType.draft,
+                      ),
+                    ),
+                    // Category icon
+                    Positioned(
+                      bottom: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.30),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          _categoryIcon(course.category),
+                          size: 18,
+                          color: Colors.white,
                         ),
                       ),
                     ),
-                  ),
-                  // Status badge
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: AppBadge(
-                      label: course.statusLabel,
-                      type: isActive
-                          ? BadgeType.active
-                          : BadgeType.draft,
-                    ),
-                  ),
-                  // Category icon
-                  Positioned(
-                    bottom: 10,
-                    left: 10,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.20),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        _categoryIcon(course.category),
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -318,6 +308,24 @@ class _CourseCard extends StatelessWidget {
         _                 => Icons.school_rounded,
       };
 
+}
+
+class _InstructorCoverGradient extends StatelessWidget {
+  final CourseModel course;
+  const _InstructorCoverGradient({required this.course});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: course.coverGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+    );
+  }
 }
 
 // ── Create Course FAB ──────────────────────────────────────────────────────────

@@ -567,23 +567,19 @@ class _RecommendedCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Thumbnail
-            Container(
-              height: 90,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    course.color.withValues(alpha: 0.8),
-                    course.color,
-                  ],
-                ),
-                borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: const Center(
-                child: Icon(Icons.menu_book_rounded,
-                    size: 36, color: Colors.white),
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: SizedBox(
+                height: 90,
+                width: double.infinity,
+                child: course.imageUrl != null && course.imageUrl!.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: course.imageUrl!,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => _CourseGradientPlaceholder(color: course.color, iconSize: 36),
+                        errorWidget: (_, __, ___) => _CourseGradientPlaceholder(color: course.color, iconSize: 36),
+                      )
+                    : _CourseGradientPlaceholder(color: course.color, iconSize: 36),
               ),
             ),
             // Info
@@ -622,7 +618,7 @@ class _RecommendedCard extends StatelessWidget {
                         ],
                       ),
                       Text(
-                        '\$${course.price.toInt()}',
+                        '${course.price.toInt()} EGP',
                         style: AppTextTheme.priceSmall
                             .copyWith(fontSize: 14),
                       ),
@@ -633,6 +629,28 @@ class _RecommendedCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CourseGradientPlaceholder extends StatelessWidget {
+  final Color color;
+  final double iconSize;
+  const _CourseGradientPlaceholder({required this.color, this.iconSize = 36});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color.withValues(alpha: 0.8), color],
+        ),
+      ),
+      child: Center(
+        child: Icon(Icons.menu_book_rounded, size: iconSize, color: Colors.white),
       ),
     );
   }

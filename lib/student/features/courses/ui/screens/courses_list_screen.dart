@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -501,23 +502,19 @@ class _CourseCard extends StatelessWidget {
             // Thumbnail
             Stack(
               children: [
-                Container(
-                  height: 100,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        course.color.withValues(alpha: 0.8),
-                        course.color,
-                      ],
-                    ),
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16)),
-                  ),
-                  child: const Center(
-                    child:
-                    Icon(Icons.menu_book_rounded, size: 44, color: Colors.white),
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  child: SizedBox(
+                    height: 100,
+                    width: double.infinity,
+                    child: course.imageUrl != null && course.imageUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: course.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => _CourseThumbnailGradient(color: course.color),
+                            placeholder: (_, __) => _CourseThumbnailGradient(color: course.color),
+                          )
+                        : _CourseThumbnailGradient(color: course.color),
                   ),
                 ),
                 if (course.level.isNotEmpty)
@@ -563,7 +560,7 @@ class _CourseCard extends StatelessWidget {
                           style: AppTextTheme.bodySmall),
                       const Spacer(),
                       // Price
-                      Text('\$${course.price.toInt()}',
+                      Text('${course.price.toInt()} EGP',
                           style: AppTextTheme.priceSmall),
                     ],
                   ),
@@ -595,6 +592,27 @@ class _LevelBadge extends StatelessWidget {
           color: Colors.white,
           fontSize: 10,
         ),
+      ),
+    );
+  }
+}
+
+class _CourseThumbnailGradient extends StatelessWidget {
+  final Color color;
+  const _CourseThumbnailGradient({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color.withValues(alpha: 0.8), color],
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.menu_book_rounded, size: 44, color: Colors.white),
       ),
     );
   }
