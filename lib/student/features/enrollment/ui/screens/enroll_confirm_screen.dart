@@ -37,24 +37,11 @@ class _EnrollConfirmScreenState extends State<EnrollConfirmScreen> {
     try {
       final dio = GetIt.instance<Dio>();
 
-      // Enroll first (silent fail — server is idempotent)
-      try { await dio.post<dynamic>(ApiEndpoints.enroll(widget.course.id)); } catch (_) {}
-
-      // Get PayMob checkout URL from backend
       final res = await dio.post<dynamic>(
         ApiEndpoints.payment(widget.course.id, _methodKeys[_method]),
       );
 
-      // API returns the URL as a plain string body
-      final data = res.data;
-      String? url;
-      if (data is String) {
-        url = data.trim();
-      } else if (data is Map) {
-        url = data['url']?.toString() ??
-              data['paymentUrl']?.toString() ??
-              data['checkoutUrl']?.toString();
-      }
+      final url = _extractUrl(res.data);
       if (url == null || url.isEmpty) throw Exception('No payment URL in response');
 
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
@@ -62,11 +49,39 @@ class _EnrollConfirmScreenState extends State<EnrollConfirmScreen> {
       setState(() => _stage = _Stage.launched);
     } catch (e) {
       if (!mounted) return;
+      String msg = 'Payment failed. Please try again.';
+      if (e is DioException) {
+        final body = e.response?.data;
+        msg = 'Error ${e.response?.statusCode}: $body';
+      }
       setState(() {
         _stage = _Stage.error;
-        _errorMsg = 'Payment failed. Please try again.';
+        _errorMsg = msg;
       });
     }
+  }
+
+  String? _extractUrl(dynamic data) {
+    if (data is String) {
+      final s = data.trim();
+      if (s.startsWith('http')) return s;
+    }
+    if (data is Map) {
+      // try all common key names
+      for (final key in ['url', 'paymentUrl', 'checkoutUrl', 'paymentLink',
+                         'link', 'redirectUrl', 'payment_url', 'data']) {
+        final v = data[key];
+        if (v is String && v.startsWith('http')) return v;
+        // nested: {"data": {"url": "..."}}
+        if (v is Map) {
+          for (final k2 in ['url', 'paymentUrl', 'checkoutUrl', 'link']) {
+            final v2 = v[k2];
+            if (v2 is String && v2.startsWith('http')) return v2;
+          }
+        }
+      }
+    }
+    return null;
   }
 
   void _done() {
