@@ -6,6 +6,7 @@ import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/utils/format_utils.dart';
 import 'package:edu_verse/core/widgets/video_player_screen.dart';
 import 'package:edu_verse/student/features/enrollment/ui/screens/enroll_confirm_screen.dart';
 import 'package:edu_verse/student/features/learning/ui/screens/my_learning_screen.dart';
@@ -265,10 +266,14 @@ class _MetricsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ratingStr = formatRating(course.rating,
+        reviewsCount: course.reviewsCount);
     final metrics = [
       _Metric(
-        value: '${course.rating}',
-        sub: '${course.reviewsCount} reviews',
+        value: ratingStr ?? 'New',
+        sub: course.reviewsCount > 0
+            ? '${course.reviewsCount} reviews'
+            : 'no reviews yet',
         icon: Icons.star_rounded,
         iconColor: AppColors.warning,
       ),

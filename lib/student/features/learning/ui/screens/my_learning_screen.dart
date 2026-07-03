@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -395,16 +396,24 @@ class _EnrolledCourseCard extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
-                  // Course icon
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: course.color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
+                  // Course thumbnail
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: course.imageUrl != null &&
+                              course.imageUrl!.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: course.imageUrl!,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => _ThumbPlaceholder(
+                                  color: course.color),
+                              errorWidget: (_, __, ___) =>
+                                  _ThumbPlaceholder(color: course.color),
+                            )
+                          : _ThumbPlaceholder(color: course.color),
                     ),
-                    child: Icon(Icons.menu_book_rounded,
-                        size: 26, color: course.color),
                   ),
                   const SizedBox(width: 14),
                   // Info
@@ -458,6 +467,27 @@ class _EnrolledCourseCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ThumbPlaceholder extends StatelessWidget {
+  final Color color;
+  const _ThumbPlaceholder({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color.withValues(alpha: 0.8), color],
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.menu_book_rounded, size: 28, color: Colors.white),
       ),
     );
   }

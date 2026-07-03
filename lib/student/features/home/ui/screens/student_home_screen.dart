@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:edu_verse/core/constants/api_endpoints.dart';
 import 'package:edu_verse/core/preferences/app_preferences.dart';
+import 'package:edu_verse/core/utils/format_utils.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_text_theme.dart';
 import '../../../../../core/theme/theme_ext.dart';
@@ -385,8 +386,41 @@ class _ContinueLearningBanner extends StatelessWidget {
               ],
             ),
           ),
-          const Text('📚', style: TextStyle(fontSize: 64)),
+          // Course thumbnail or fallback emoji
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 72,
+                height: 72,
+                child: course.imageUrl != null && course.imageUrl!.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: course.imageUrl!,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => const _BannerThumbFallback(),
+                        errorWidget: (_, __, ___) =>
+                            const _BannerThumbFallback(),
+                      )
+                    : const _BannerThumbFallback(),
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _BannerThumbFallback extends StatelessWidget {
+  const _BannerThumbFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white.withValues(alpha: 0.15),
+      child: const Center(
+        child: Text('📚', style: TextStyle(fontSize: 36)),
       ),
     );
   }
@@ -476,15 +510,24 @@ class _InProgressCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: course.color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: course.imageUrl != null && course.imageUrl!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: course.imageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => _CourseGradientPlaceholder(
+                              color: course.color, iconSize: 22),
+                          errorWidget: (_, __, ___) =>
+                              _CourseGradientPlaceholder(
+                                  color: course.color, iconSize: 22),
+                        )
+                      : _CourseGradientPlaceholder(
+                          color: course.color, iconSize: 22),
                 ),
-                child: Icon(Icons.menu_book_rounded,
-                    color: course.color, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -605,22 +648,35 @@ class _RecommendedCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.star_rounded,
-                              size: 13, color: AppColors.warning),
-                          const SizedBox(width: 2),
-                          Text(
-                            '${course.rating}',
-                            style: AppTextTheme.bodyLarge
-                                .copyWith(fontSize: 12),
-                          ),
-                        ],
-                      ),
+                      Builder(builder: (context) {
+                        final r = formatRating(course.rating,
+                            reviewsCount: course.reviewsCount);
+                        return r != null
+                            ? Row(children: [
+                                const Icon(Icons.star_rounded,
+                                    size: 13, color: AppColors.warning),
+                                const SizedBox(width: 2),
+                                Text(r,
+                                    style: AppTextTheme.bodyLarge
+                                        .copyWith(fontSize: 12)),
+                              ])
+                            : Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text('New',
+                                    style: AppTextTheme.badgeSm.copyWith(
+                                        color: AppColors.success,
+                                        fontSize: 10)),
+                              );
+                      }),
                       Text(
-                        '${course.price.toInt()} EGP',
-                        style: AppTextTheme.priceSmall
-                            .copyWith(fontSize: 14),
+                        formatPrice(course.price),
+                        style: AppTextTheme.priceSmall.copyWith(fontSize: 14),
                       ),
                     ],
                   ),

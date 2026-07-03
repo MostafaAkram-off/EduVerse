@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:edu_verse/core/theme/app_colors.dart';
 import 'package:edu_verse/core/theme/theme_ext.dart';
 import 'package:edu_verse/core/theme/app_text_theme.dart';
+import 'package:edu_verse/core/utils/format_utils.dart';
 import '../../data/models/course_model.dart';
 import '../cubit/courses_cubit.dart';
 import 'course_detail_screen.dart';
@@ -536,31 +537,53 @@ class _CourseCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
-                  Text('by ${course.instructor}',
-                      style: AppTextTheme.cardSubtitle),
+                  if (course.instructor.isNotEmpty)
+                    Text('by ${course.instructor}',
+                        style: AppTextTheme.cardSubtitle),
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      // Rating
-                      const Icon(Icons.star_rounded,
-                          size: 14, color: AppColors.warning),
-                      const SizedBox(width: 3),
-                      Text('${course.rating}',
-                          style: AppTextTheme.bodyBold
-                              .copyWith(fontSize: 13)),
-                      const SizedBox(width: 3),
-                      Text('(${course.reviewsCount})',
-                          style: AppTextTheme.timestamp),
+                      // Rating or "New" badge
+                      Builder(builder: (context) {
+                        final r = formatRating(course.rating,
+                            reviewsCount: course.reviewsCount);
+                        return r != null
+                            ? Row(children: [
+                                const Icon(Icons.star_rounded,
+                                    size: 14, color: AppColors.warning),
+                                const SizedBox(width: 3),
+                                Text(r,
+                                    style: AppTextTheme.bodyBold
+                                        .copyWith(fontSize: 13)),
+                                const SizedBox(width: 3),
+                                Text('(${course.reviewsCount})',
+                                    style: AppTextTheme.timestamp),
+                              ])
+                            : Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text('New',
+                                    style: AppTextTheme.badgeSm.copyWith(
+                                        color: AppColors.success)),
+                              );
+                      }),
                       const SizedBox(width: 12),
                       // Duration
-                      Icon(Icons.access_time,
-                          size: 13, color: context.textTertiary),
-                      const SizedBox(width: 3),
-                      Text(course.duration,
-                          style: AppTextTheme.bodySmall),
+                      if (course.duration.isNotEmpty) ...[
+                        Icon(Icons.access_time,
+                            size: 13, color: context.textTertiary),
+                        const SizedBox(width: 3),
+                        Text(course.duration,
+                            style: AppTextTheme.bodySmall),
+                      ],
                       const Spacer(),
                       // Price
-                      Text('${course.price.toInt()} EGP',
+                      Text(formatPrice(course.price),
                           style: AppTextTheme.priceSmall),
                     ],
                   ),
