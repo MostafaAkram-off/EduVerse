@@ -19,10 +19,30 @@ EduVerse is a cross-platform mobile application that connects students with inst
 
 ---
 
+## Screenshots
+
+### Student
+
+| Sign in | Browse courses | Course detail |
+|---|---|---|
+| <img src="screenshots/01-login.jpg" width="220" alt="Sign in" /> | <img src="screenshots/02-explore-courses.jpg" width="220" alt="Explore courses" /> | <img src="screenshots/03-course-detail.jpg" width="220" alt="Course detail" /> |
+
+| Checkout (PayMob) | My learning | Certificate |
+|---|---|---|
+| <img src="screenshots/04-payment-paymob.jpg" width="220" alt="PayMob checkout" /> | <img src="screenshots/05-my-learning.jpg" width="220" alt="My learning" /> | <img src="screenshots/06-certificate.jpg" width="220" alt="Certificate" /> |
+
+### Instructor
+
+| Dashboard | Attendance QR | Grading |
+|---|---|---|
+| <img src="screenshots/07-instructor-dashboard.jpg" width="220" alt="Instructor dashboard" /> | <img src="screenshots/08-attendance-qr.jpg" width="220" alt="Attendance QR code" /> | <img src="screenshots/09-grade-submission.jpg" width="220" alt="Grade a submission" /> |
+
+---
+
 ## Features
 
 ### Student
-- Browse course catalog with AI-powered recommendations
+- Browse the course catalog with personalised and trending recommendations
 - Enroll in courses with PayMob payment integration (Card, Bank Transfer, Installments)
 - Stream video lessons with an in-app media player
 - Track attendance via QR code scanning
@@ -42,7 +62,6 @@ EduVerse is a cross-platform mobile application that connects students with inst
 - Forgot password / reset password flow
 - Dark & light theme support
 - Localization-ready (flutter_localizations)
-- Secure token storage
 
 ---
 
@@ -51,11 +70,11 @@ EduVerse is a cross-platform mobile application that connects students with inst
 | Layer | Technology |
 |---|---|
 | Framework | Flutter 3 / Dart 3 |
-| State Management | flutter_bloc (Cubit) |
-| Dependency Injection | get_it + injectable |
+| State Management | flutter_bloc (Cubit) with custom generic states |
+| Dependency Injection | get_it (manual registration) |
 | Navigation | go_router |
-| Networking | Dio |
-| Local Storage | shared_preferences + flutter_secure_storage |
+| Networking | Dio (auth + logging interceptors) over 12 typed API service classes |
+| Local Storage | shared_preferences |
 | Media Player | media_kit + media_kit_video |
 | Image Loading | cached_network_image |
 | PDF Generation | pdf + printing |
@@ -90,7 +109,7 @@ lib/
         ├── assignments/    # Assignment submission
         ├── attendance/     # QR-based attendance
         ├── certificates/   # Certificate viewer & download
-        ├── notifications/  # Push notifications
+        ├── notifications/  # In-app notification feed
         └── profile/        # User profile management
 ```
 
@@ -135,7 +154,7 @@ The app connects to a live ASP.NET Core REST API:
 https://eduverseapi.azurewebsites.net
 ```
 
-Authentication uses JWT tokens stored securely on-device. All API communication goes through a Dio client with an auth interceptor that automatically attaches and refreshes tokens.
+Authentication uses JWT tokens persisted on-device. All API communication goes through a Dio client with an interceptor that attaches the bearer token to every request and clears the session on a 401 response.
 
 ---
 
@@ -149,6 +168,19 @@ Supported payment methods (configured on PayMob dashboard):
 - Installments
 
 ---
+
+## Roadmap
+
+- [ ] Move JWT storage from `shared_preferences` to `flutter_secure_storage`
+- [ ] Migrate the API service layer to Retrofit and models to Freezed / json_serializable (dependencies are already in `pubspec.yaml`)
+- [ ] Unit tests for use cases and widget tests for key screens
+- [ ] Full Arabic localisation (the app is already localisation-ready)
+
+## Author
+
+**Mostafa Akram** — Flutter Developer
+
+[GitHub](https://github.com/MostafaAkram-off) · [LinkedIn](https://www.linkedin.com/in/mostafaakram-dev/)
 
 ## License
 
