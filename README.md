@@ -17,6 +17,10 @@
 
 EduVerse is a cross-platform mobile application that connects students with instructors in an online learning environment. Students can browse and enroll in courses, watch video lessons, track attendance, submit assignments, earn certificates, and pay securely via PayMob. Instructors can create and manage courses, upload content, and monitor their students.
 
+## My Role
+
+I built the Flutter mobile app and designed the UI/UX and the logo. The ASP.NET Core backend was built by my teammates as part of our graduation project at Fayoum University.
+
 ---
 
 ## Screenshots
